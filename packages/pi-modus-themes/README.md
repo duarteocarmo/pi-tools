@@ -4,4 +4,16 @@ Pi Modus Themes adds light and dark Modus themes to Pi. It follows the current m
 
 The themes are based on [Modus Themes](https://github.com/protesilaos/modus-themes) by Protesilaos Stavrou.
 
-<!-- Release test. -->
+## Install
+
+From npm:
+
+```sh
+pi install npm:@duarteocarmo/pi-modus-themes
+```
+
+All packages from Git:
+
+```sh
+pi install git:github.com/duarteocarmo/pi-tools
+```

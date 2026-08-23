@@ -6,4 +6,16 @@ Pi No Sleep keeps the macOS display awake while it is enabled. Use `/no-sleep` t
 
 The extension is based on Armin Ronacher's [`no-sleep.ts`](https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/no-sleep.ts) from [`mitsuhiko/agent-stuff`](https://github.com/mitsuhiko/agent-stuff).
 
-<!-- Release test. -->
+## Install
+
+From npm:
+
+```sh
+pi install npm:@duarteocarmo/pi-no-sleep
+```
+
+All packages from Git:
+
+```sh
+pi install git:github.com/duarteocarmo/pi-tools
+```

@@ -11,6 +11,17 @@
     "check": "tsc --noEmit && npm run check --workspace=@duarteocarmo/pi-jumper",
     "publish:prepare": "node scripts/prepare-publish.mjs"
   },
+  "pi": {
+    "extensions": [
+      "./packages/pi-jumper/index.ts",
+      "./packages/pi-modus-themes/index.ts",
+      "./packages/pi-no-sleep/index.ts",
+      "./packages/pi-preview/index.ts",
+      "./packages/pi-session-breakdown/index.ts",
+      "./packages/pi-subagents/index.ts"
+    ],
+    "themes": ["./packages/pi-modus-themes/themes"]
+  },
   "devDependencies": {
     "@earendil-works/pi-ai": "0.84.2",
     "@earendil-works/pi-coding-agent": "0.84.2",
