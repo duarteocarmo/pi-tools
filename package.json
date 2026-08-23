@@ -1,0 +1,25 @@
+{
+  "name": "pi-extensions-doc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "check": "tsc --noEmit && npm run check --workspace=@duarteocarmo/pi-jumper",
+    "publish:prepare": "node scripts/prepare-publish.mjs"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.84.2",
+    "@earendil-works/pi-coding-agent": "0.84.2",
+    "@earendil-works/pi-tui": "0.84.2",
+    "@types/node": "22.18.6",
+    "typebox": "1.3.6",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

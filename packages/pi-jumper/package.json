@@ -1,0 +1,23 @@
+{
+  "name": "@duarteocarmo/pi-jumper",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "See and jump between live Pi sessions.",
+  "keywords": ["pi-package", "pi-extension"],
+  "license": "MIT",
+  "files": ["index.ts", "src/activity.ts", "src/registry.ts", "src/tmux.ts", "src/ui.ts"],
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/*.test.ts",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  }
+}

@@ -1,0 +1,466 @@
+import AppKit
+import ServiceManagement
+
+@MainActor
+final class MenuController: NSObject, NSMenuDelegate {
+    private let store: StatsStore
+    private let currencyStore: CurrencyStore
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    private let menu = NSMenu()
+    private var refreshTimer: Timer?
+    private var selectedTab = DashboardTab(
+        rawValue: UserDefaults.standard.string(forKey: "selectedTab") ?? ""
+    ) ?? .models
+
+    private var headerView: SummaryHeaderView?
+    private var rangeView: RangePickerView?
+    private var overviewView: OverviewView?
+    private var spendView: DailySpendChartView?
+    private var tabView: TabPickerView?
+    private var barsView: BarListView?
+    private var refreshItem: NSMenuItem?
+    private var currencyItem: NSMenuItem?
+    private var launchItem: NSMenuItem?
+
+    init(store: StatsStore, currencyStore: CurrencyStore) {
+        self.store = store
+        self.currencyStore = currencyStore
+        super.init()
+
+        menu.delegate = self
+        menu.autoenablesItems = false
+        statusItem.menu = menu
+        statusItem.button?.image = PiMenuIcon.image()
+        statusItem.button?.imagePosition = .imageOnly
+        statusItem.button?.title = ""
+        statusItem.button?.toolTip = "Pi Helicopter"
+        statusItem.button?.setAccessibilityLabel("Pi Helicopter usage")
+
+        store.onChange = { [weak self] in self?.storeChanged() }
+        currencyStore.onChange = { [weak self] in self?.currencyChanged() }
+        store.refresh()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.store.refresh() }
+        }
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        if menu.numberOfItems == 0 {
+            rebuildMenu()
+        } else {
+            updatePresentedSummary()
+            configureCurrencyItem()
+            if let launchItem { configureLaunchItem(launchItem) }
+        }
+        if let lastUpdated = store.lastUpdated, Date().timeIntervalSince(lastUpdated) > 60 {
+            store.refresh()
+        }
+    }
+
+    private func storeChanged() {
+        guard menu.numberOfItems > 0 else { return }
+        updatePresentedSummary()
+    }
+
+    private func currencyChanged() {
+        guard menu.numberOfItems > 0 else { return }
+        configureCurrencyItem()
+        updatePresentedSummary()
+    }
+
+    private func rebuildMenu() {
+        menu.removeAllItems()
+        let summary = store.summary(for: store.selectedRange)
+        let today = store.summary(for: .day)
+
+        let header = SummaryHeaderView(
+            range: store.selectedRange,
+            isRefreshing: store.isRefreshing,
+            error: store.error
+        )
+        headerView = header
+        menu.addItem(viewItem(for: header))
+
+        let rangePicker = RangePickerView(selected: store.selectedRange) { [weak self] range in
+            self?.select(range: range)
+        }
+        rangeView = rangePicker
+        menu.addItem(viewItem(for: rangePicker))
+
+        menu.addItem(.separator())
+
+        let overview = OverviewView(summary: summary, today: today, money: currencyStore.money)
+        overviewView = overview
+        menu.addItem(viewItem(for: overview))
+
+        let spend = DailySpendChartView(
+            data: summary.dailySpend,
+            range: store.selectedRange,
+            money: currencyStore.money
+        )
+        spendView = spend
+        menu.addItem(viewItem(for: spend))
+        menu.addItem(.separator())
+
+        let tabPicker = TabPickerView(selected: selectedTab) { [weak self] tab in
+            self?.select(tab: tab)
+        }
+        tabView = tabPicker
+        menu.addItem(viewItem(for: tabPicker))
+
+        let bars = BarListView(tab: selectedTab, summary: summary, money: currencyStore.money)
+        barsView = bars
+        menu.addItem(viewItem(for: bars))
+        menu.addItem(.separator())
+
+        let refresh = NSMenuItem(title: "Refresh", action: #selector(refresh(_:)), keyEquivalent: "r")
+        refresh.target = self
+        refresh.isEnabled = !store.isRefreshing
+        refreshItem = refresh
+        menu.addItem(refresh)
+
+        let currency = NSMenuItem(title: "Currency", action: nil, keyEquivalent: "")
+        currency.submenu = NSMenu()
+        currency.isEnabled = true
+        currencyItem = currency
+        configureCurrencyItem()
+        menu.addItem(currency)
+
+        let launch = NSMenuItem(
+            title: "Launch at Login",
+            action: #selector(toggleLaunchAtLogin(_:)),
+            keyEquivalent: ""
+        )
+        launch.target = self
+        configureLaunchItem(launch)
+        launchItem = launch
+        menu.addItem(launch)
+        menu.addItem(.separator())
+
+        let about = NSMenuItem(title: "About Pi Helicopter", action: #selector(showAbout(_:)), keyEquivalent: "")
+        about.target = self
+        menu.addItem(about)
+
+        let quit = NSMenuItem(title: "Quit Pi Helicopter", action: #selector(quit(_:)), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+    }
+
+    private func select(range: DateRange) {
+        store.selectedRange = range
+        updatePresentedSummary()
+    }
+
+    private func select(tab: DashboardTab) {
+        selectedTab = tab
+        UserDefaults.standard.set(tab.rawValue, forKey: "selectedTab")
+        updatePresentedSummary()
+    }
+
+    private func updatePresentedSummary() {
+        let summary = store.summary(for: store.selectedRange)
+        let today = store.summary(for: .day)
+        rangeView?.select(range: store.selectedRange)
+        tabView?.select(tab: selectedTab)
+        headerView?.update(range: store.selectedRange, isRefreshing: store.isRefreshing, error: store.error)
+        overviewView?.update(summary: summary, today: today, money: currencyStore.money)
+        spendView?.update(
+            data: summary.dailySpend,
+            range: store.selectedRange,
+            money: currencyStore.money
+        )
+        barsView?.update(tab: selectedTab, summary: summary, money: currencyStore.money)
+        refreshItem?.isEnabled = !store.isRefreshing
+    }
+
+    private func configureCurrencyItem() {
+        guard let item = currencyItem, let submenu = item.submenu else { return }
+        item.title = "Currency: \(currencyStore.selected.rawValue)"
+        submenu.removeAllItems()
+        for currency in DisplayCurrency.allCases {
+            let option = NSMenuItem(
+                title: currency.menuTitle,
+                action: #selector(selectCurrency(_:)),
+                keyEquivalent: ""
+            )
+            option.target = self
+            option.representedObject = currency.rawValue
+            option.state = currency == currencyStore.selected ? .on : .off
+            submenu.addItem(option)
+        }
+
+        guard currencyStore.selected != .usd else { return }
+        submenu.addItem(.separator())
+        let status: String
+        if currencyStore.isRefreshing {
+            status = "Updating ECB rates…"
+        } else if currencyStore.money.currency != currencyStore.selected {
+            status = "Rates unavailable; showing USD"
+        } else {
+            status = "European Central Bank rate"
+        }
+        let statusItem = NSMenuItem(title: status, action: nil, keyEquivalent: "")
+        statusItem.isEnabled = false
+        submenu.addItem(statusItem)
+    }
+
+    private func viewItem(for view: NSView) -> NSMenuItem {
+        let item = NSMenuItem()
+        item.isEnabled = false
+        item.view = view
+        return item
+    }
+
+    private func configureLaunchItem(_ item: NSMenuItem) {
+        item.title = "Launch at Login"
+        switch SMAppService.mainApp.status {
+        case .enabled:
+            item.state = .on
+        case .requiresApproval:
+            item.title = "Launch at Login (Needs Approval)"
+            item.state = .mixed
+        default:
+            item.state = .off
+        }
+    }
+
+    @objc private func refresh(_ sender: NSMenuItem) {
+        store.refresh()
+        currencyStore.refreshIfNeeded()
+    }
+
+    @objc private func selectCurrency(_ sender: NSMenuItem) {
+        guard let value = sender.representedObject as? String,
+              let currency = DisplayCurrency(rawValue: value)
+        else { return }
+        currencyStore.select(currency: currency)
+    }
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        do {
+            switch SMAppService.mainApp.status {
+            case .enabled:
+                try SMAppService.mainApp.unregister()
+            case .requiresApproval:
+                if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+                    NSWorkspace.shared.open(url)
+                }
+            default:
+                try SMAppService.mainApp.register()
+            }
+            configureLaunchItem(sender)
+        } catch {
+            NSAlert(error: error).runModal()
+        }
+    }
+
+    @objc private func showAbout(_ sender: NSMenuItem) {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .credits: NSAttributedString(string: "Fast, local Pi usage. Exchange rates come from the European Central Bank. No telemetry.")
+        ])
+    }
+
+    @objc private func quit(_ sender: NSMenuItem) {
+        NSApp.terminate(nil)
+    }
+}
+
+final class SummaryHeaderView: NSView {
+    private let statusLabel = NSTextField(labelWithString: "")
+
+    init(range: DateRange, isRefreshing: Bool, error: String?) {
+        super.init(frame: NSRect(x: 0, y: 0, width: MenuStyle.width, height: 40))
+        translatesAutoresizingMaskIntoConstraints = false
+        widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
+        heightAnchor.constraint(equalToConstant: 40).isActive = true
+
+        let title = NSTextField(labelWithString: "Pi Helicopter")
+        title.font = MenuStyle.title
+        statusLabel.font = MenuStyle.metadata
+        for view in [title, statusLabel] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
+        }
+        NSLayoutConstraint.activate([
+            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MenuStyle.padding),
+            title.centerYAnchor.constraint(equalTo: centerYAnchor),
+            statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuStyle.padding),
+            statusLabel.firstBaselineAnchor.constraint(equalTo: title.firstBaselineAnchor)
+        ])
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Pi Helicopter")
+        update(range: range, isRefreshing: isRefreshing, error: error)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(range: DateRange, isRefreshing: Bool, error: String?) {
+        if error != nil {
+            statusLabel.stringValue = "ERROR"
+            statusLabel.textColor = .systemRed
+        } else {
+            statusLabel.stringValue = isRefreshing ? "REFRESHING" : range.title.uppercased()
+            statusLabel.textColor = .secondaryLabelColor
+        }
+        setAccessibilityValue(error ?? "\(range.title)\(isRefreshing ? ", refreshing" : "")")
+    }
+}
+
+final class RangePickerView: NSView {
+    private let control: NSSegmentedControl
+    private let onChange: (DateRange) -> Void
+
+    init(selected: DateRange, onChange: @escaping (DateRange) -> Void) {
+        self.onChange = onChange
+        control = NSSegmentedControl(
+            labels: DateRange.allCases.map(\.shortTitle),
+            trackingMode: .selectOne,
+            target: nil,
+            action: nil
+        )
+        super.init(frame: NSRect(
+            x: 0,
+            y: 0,
+            width: MenuStyle.width,
+            height: MenuStyle.pickerHeight
+        ))
+        configure(control: control, accessibilityLabel: "Summary range")
+        control.target = self
+        control.action = #selector(changeRange(_:))
+        select(range: selected)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func select(range: DateRange) {
+        control.selectedSegment = DateRange.allCases.firstIndex(of: range) ?? 0
+    }
+
+    @objc private func changeRange(_ sender: NSSegmentedControl) {
+        guard DateRange.allCases.indices.contains(sender.selectedSegment) else { return }
+        onChange(DateRange.allCases[sender.selectedSegment])
+    }
+
+    private func configure(control: NSSegmentedControl, accessibilityLabel: String) {
+        translatesAutoresizingMaskIntoConstraints = false
+        widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
+        heightAnchor.constraint(equalToConstant: MenuStyle.pickerHeight).isActive = true
+        control.controlSize = MenuStyle.controlSize
+        control.segmentStyle = .rounded
+        control.translatesAutoresizingMaskIntoConstraints = false
+        control.setAccessibilityLabel(accessibilityLabel)
+        addSubview(control)
+        NSLayoutConstraint.activate([
+            control.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MenuStyle.padding),
+            control.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuStyle.padding),
+            control.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+    }
+}
+
+final class TabPickerView: NSView {
+    private let control: NSSegmentedControl
+    private let onChange: (DashboardTab) -> Void
+
+    init(selected: DashboardTab, onChange: @escaping (DashboardTab) -> Void) {
+        let symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+        let images = DashboardTab.allCases.map { tab in
+            let image = NSImage(
+                systemSymbolName: tab.symbolName,
+                accessibilityDescription: tab.title
+            ) ?? NSImage()
+            return image.withSymbolConfiguration(symbolConfiguration) ?? image
+        }
+        self.onChange = onChange
+        control = NSSegmentedControl(
+            images: images,
+            trackingMode: .selectOne,
+            target: nil,
+            action: nil
+        )
+        super.init(frame: NSRect(
+            x: 0,
+            y: 0,
+            width: MenuStyle.width,
+            height: MenuStyle.pickerHeight
+        ))
+        translatesAutoresizingMaskIntoConstraints = false
+        widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
+        heightAnchor.constraint(equalToConstant: MenuStyle.pickerHeight).isActive = true
+        control.controlSize = MenuStyle.controlSize
+        control.segmentStyle = .rounded
+        control.target = self
+        control.action = #selector(changeTab(_:))
+        let segmentWidth = MenuStyle.contentWidth / CGFloat(DashboardTab.allCases.count)
+        for (index, tab) in DashboardTab.allCases.enumerated() {
+            control.setWidth(segmentWidth, forSegment: index)
+            control.setToolTip(tab.title, forSegment: index)
+        }
+        control.translatesAutoresizingMaskIntoConstraints = false
+        control.setAccessibilityLabel("Ranking category")
+        addSubview(control)
+        NSLayoutConstraint.activate([
+            control.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MenuStyle.padding),
+            control.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuStyle.padding),
+            control.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+        select(tab: selected)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func select(tab: DashboardTab) {
+        control.selectedSegment = DashboardTab.allCases.firstIndex(of: tab) ?? 0
+    }
+
+    @objc private func changeTab(_ sender: NSSegmentedControl) {
+        guard DashboardTab.allCases.indices.contains(sender.selectedSegment) else { return }
+        onChange(DashboardTab.allCases[sender.selectedSegment])
+    }
+}
+
+private enum PiMenuIcon {
+    static func image() -> NSImage {
+        let image = NSImage(size: NSSize(width: 16, height: 16))
+        image.lockFocus()
+        let mark = NSBezierPath()
+        mark.move(to: NSPoint(x: 1, y: 14))
+        mark.line(to: NSPoint(x: 15, y: 14))
+        mark.line(to: NSPoint(x: 13.7, y: 11.8))
+        mark.line(to: NSPoint(x: 12, y: 11.8))
+        mark.line(to: NSPoint(x: 12, y: 5.2))
+        mark.curve(
+            to: NSPoint(x: 14.2, y: 2.7),
+            controlPoint1: NSPoint(x: 12, y: 3.5),
+            controlPoint2: NSPoint(x: 12.8, y: 2.7)
+        )
+        mark.line(to: NSPoint(x: 14.7, y: 2.7))
+        mark.line(to: NSPoint(x: 14.7, y: 0.8))
+        mark.line(to: NSPoint(x: 13.6, y: 0.8))
+        mark.curve(
+            to: NSPoint(x: 9.6, y: 5.4),
+            controlPoint1: NSPoint(x: 11.2, y: 0.8),
+            controlPoint2: NSPoint(x: 9.6, y: 2.6)
+        )
+        mark.line(to: NSPoint(x: 9.6, y: 11.8))
+        mark.line(to: NSPoint(x: 7, y: 11.8))
+        mark.line(to: NSPoint(x: 7, y: 0.8))
+        mark.line(to: NSPoint(x: 4.2, y: 0.8))
+        mark.line(to: NSPoint(x: 4.2, y: 11.8))
+        mark.line(to: NSPoint(x: 1, y: 11.8))
+        mark.close()
+        NSColor.black.setFill()
+        mark.fill()
+        image.unlockFocus()
+        image.isTemplate = true
+        return image
+    }
+}

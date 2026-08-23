@@ -1,0 +1,18 @@
+{
+  "name": "@duarteocarmo/pi-preview",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Preview the latest Pi response as HTML.",
+  "keywords": ["pi-package", "pi-extension"],
+  "files": ["index.ts"],
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "marked": "^15.0.0"
+  }
+}

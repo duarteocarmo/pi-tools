@@ -1,0 +1,16 @@
+{
+  "name": "@duarteocarmo/pi-session-breakdown",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Inspect Pi session usage over time.",
+  "license": "Apache-2.0",
+  "keywords": ["pi-package", "pi-extension"],
+  "files": ["index.ts"],
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  }
+}

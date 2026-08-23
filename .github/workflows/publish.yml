@@ -1,0 +1,74 @@
+name: Publish packages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+
+      - name: Detect changed packages
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" || -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
+            files=$(git ls-files 'packages/**')
+          else
+            files=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- packages/)
+          fi
+
+          packages=$(
+            {
+              while IFS= read -r file; do
+                [[ "$file" == packages/*/* ]] || continue
+                package=${file#packages/}
+                package=${package%%/*}
+                [[ -f "packages/$package/package.json" ]] && printf '%s\n' "$package"
+              done <<< "$files"
+              true
+            } | sort -u | paste -sd ' ' -
+          )
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+          echo "Changed packages: ${packages:-none}"
+
+      - name: Prepare package versions
+        if: steps.changes.outputs.packages != ''
+        run: node scripts/prepare-publish.mjs ${{ steps.changes.outputs.packages }}
+
+      - name: Publish changed packages
+        if: steps.changes.outputs.packages != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGES: ${{ steps.changes.outputs.packages }}
+        run: |
+          set -euo pipefail
+          for package in $PACKAGES; do
+            npm publish --workspace="./packages/$package" --access public --provenance
+          done
