@@ -17,7 +17,6 @@
       "./packages/pi-modus-themes/index.ts",
       "./packages/pi-no-sleep/index.ts",
       "./packages/pi-preview/index.ts",
-      "./packages/pi-session-breakdown/index.ts",
       "./packages/pi-subagents/index.ts"
     ],
     "themes": [
