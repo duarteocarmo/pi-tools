@@ -328,7 +328,7 @@ final class BarListView: NSView {
             let maximum = max(summary.models.first?.primary ?? 0, 0.0001)
             return summary.models.map {
                 BarEntry(
-                    title: displayModel($0.name),
+                    title: Format.modelName($0.name),
                     value: money.money($0.primary),
                     subtitle: "\(Format.count($0.count)) calls",
                     fraction: $0.primary / maximum
@@ -462,14 +462,6 @@ final class BarListView: NSView {
         return ranking
     }
 
-    private func displayModel(_ name: String) -> String {
-        var result = name
-        if result.hasPrefix("claude-") { result = "Claude " + result.dropFirst("claude-".count) }
-        result = result.replacingOccurrences(of: "opus", with: "Opus")
-        result = result.replacingOccurrences(of: "sonnet", with: "Sonnet")
-        result = result.replacingOccurrences(of: "haiku", with: "Haiku")
-        return result
-    }
 }
 
 private struct BarEntry {

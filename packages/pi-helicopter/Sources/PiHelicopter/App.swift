@@ -14,10 +14,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        menuController = MenuController(
+        let controller = MenuController(
             store: StatsStore(),
             currencyStore: CurrencyStore(),
             updateStore: UpdateStore()
         )
+        menuController = controller
+        ApplicationMenu.install(target: controller)
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        menuController?.applicationDidBecomeActive()
     }
 }

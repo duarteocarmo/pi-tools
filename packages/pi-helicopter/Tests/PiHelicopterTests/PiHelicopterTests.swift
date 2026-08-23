@@ -91,11 +91,26 @@ final class PiHelicopterTests: XCTestCase {
             tools: [NamedValue(name: "read", primary: 5, count: 5)]
         )
         let today = Summary(cost: 2.5)
+        let snapshotContent = DashboardSnapshotContent(
+            summary: summary,
+            today: today,
+            range: .week,
+            tab: .models,
+            money: .usd,
+            isRefreshing: false,
+            error: nil,
+            lastUpdated: nil
+        )
         let overview = OverviewView(summary: summary, today: today)
         let bars = BarListView(tab: .models, summary: summary)
         let rangePicker = RangePickerView(selected: .week) { _ in }
         let tabPicker = TabPickerView(selected: .models) { _ in }
-        let footer = MenuFooterView(version: "0.1.2")
+        let header = SummaryHeaderView(
+            range: .week,
+            isRefreshing: false,
+            error: nil,
+            lastUpdated: nil
+        )
         let rangeControl = try XCTUnwrap(rangePicker.subviews.first as? NSSegmentedControl)
         let tabControl = try XCTUnwrap(tabPicker.subviews.first as? NSSegmentedControl)
         XCTAssertEqual(rangePicker.frame.height, tabPicker.frame.height)
@@ -121,12 +136,22 @@ final class PiHelicopterTests: XCTestCase {
 
         for appearanceName in appearances {
             let appearance = try XCTUnwrap(NSAppearance(named: appearanceName))
-            for view in [spend, overview, footer] {
+            for view in [spend, overview, header] {
                 view.appearance = appearance
                 let image = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
                 view.cacheDisplay(in: view.bounds, to: image)
                 XCTAssertGreaterThan(image.pixelsWide, 0)
             }
+            let snapshot = DashboardSnapshotRenderer.image(
+                for: snapshotContent,
+                appearance: appearance
+            )
+            let snapshotRepresentation = try XCTUnwrap(
+                snapshot.representations.first as? NSBitmapImageRep
+            )
+            XCTAssertEqual(snapshotRepresentation.pixelsWide, 600)
+            XCTAssertEqual(snapshotRepresentation.pixelsHigh, 1_266)
+
             bars.appearance = appearance
             for tab in DashboardTab.allCases {
                 bars.update(tab: tab, summary: summary)
@@ -142,11 +167,21 @@ final class PiHelicopterTests: XCTestCase {
         XCTAssertTrue(tokenAccessibility.contains("Cached"))
         XCTAssertTrue(tokenAccessibility.contains("Input"))
         XCTAssertTrue(tokenAccessibility.contains("Output"))
-        let footerButtons = footer.subviews.compactMap { $0 as? NSButton }
-        let footerLabels = footer.subviews.compactMap { $0 as? NSTextField }
-        XCTAssertEqual(footerButtons.map(\.title).sorted(), ["About", "Quit"])
-        XCTAssertTrue(footerButtons.allSatisfy { $0.target === footer && $0.action != nil })
-        XCTAssertEqual(footerLabels.first?.stringValue, "0.1.2")
+        let now = Date(timeIntervalSince1970: 10_000)
+        XCTAssertEqual(SummaryHeaderView.statusTitle(
+            range: .week,
+            isRefreshing: false,
+            error: nil,
+            lastUpdated: now.addingTimeInterval(-120),
+            now: now
+        ), "UPDATED 2M AGO")
+        XCTAssertEqual(SummaryHeaderView.statusTitle(
+            range: .week,
+            isRefreshing: false,
+            error: "Failed",
+            lastUpdated: now,
+            now: now
+        ), "ERROR")
         XCTAssertEqual(DateRange.day.shortTitle, "Today")
         XCTAssertEqual(DateRange.quarter.days, 90)
     }

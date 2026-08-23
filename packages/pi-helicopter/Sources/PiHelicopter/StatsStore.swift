@@ -220,6 +220,8 @@ final class StatsStore {
         }
     }
 
+    var sessionsURL: URL { scanner.sessionsURL }
+
     func summary(for range: DateRange) -> Summary {
         summaries[range] ?? Summary()
     }

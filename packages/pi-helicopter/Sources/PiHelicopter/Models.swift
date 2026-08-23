@@ -133,6 +133,17 @@ enum Format {
         compact(Double(value))
     }
 
+    static func modelName(_ name: String) -> String {
+        var result = name
+        if result.hasPrefix("claude-") {
+            result = "Claude " + result.dropFirst("claude-".count)
+        }
+        result = result.replacingOccurrences(of: "opus", with: "Opus")
+        result = result.replacingOccurrences(of: "sonnet", with: "Sonnet")
+        result = result.replacingOccurrences(of: "haiku", with: "Haiku")
+        return result
+    }
+
     static func compact(_ value: Double) -> String {
         let magnitude: (divisor: Double, suffix: String)
         switch abs(value) {

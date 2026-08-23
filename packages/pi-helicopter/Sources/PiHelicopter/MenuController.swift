@@ -1,8 +1,7 @@
 import AppKit
-import ServiceManagement
 
 @MainActor
-final class MenuController: NSObject, NSMenuDelegate {
+final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
     private let store: StatsStore
     private let currencyStore: CurrencyStore
     private let updateStore: UpdateStore
@@ -20,9 +19,9 @@ final class MenuController: NSObject, NSMenuDelegate {
     private var tabView: TabPickerView?
     private var barsView: BarListView?
     private var refreshItem: NSMenuItem?
-    private var currencyItem: NSMenuItem?
-    private var launchItem: NSMenuItem?
     private var updateItem: NSMenuItem?
+    private var sharingPicker: NSSharingServicePicker?
+    private var settingsController: SettingsWindowController?
 
     init(store: StatsStore, currencyStore: CurrencyStore, updateStore: UpdateStore) {
         self.store = store
@@ -51,13 +50,15 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
     }
 
+    func applicationDidBecomeActive() {
+        settingsController?.sync()
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         if menu.numberOfItems == 0 {
             rebuildMenu()
         } else {
             updatePresentedSummary()
-            configureCurrencyItem()
-            if let launchItem { configureLaunchItem(launchItem) }
             if let updateItem { configureUpdateItem(updateItem) }
         }
         if let lastUpdated = store.lastUpdated, Date().timeIntervalSince(lastUpdated) > 60 {
@@ -72,8 +73,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     private func currencyChanged() {
+        settingsController?.sync()
         guard menu.numberOfItems > 0 else { return }
-        configureCurrencyItem()
         updatePresentedSummary()
     }
 
@@ -90,7 +91,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         let header = SummaryHeaderView(
             range: store.selectedRange,
             isRefreshing: store.isRefreshing,
-            error: store.error
+            error: store.error,
+            lastUpdated: store.lastUpdated
         )
         headerView = header
         menu.addItem(viewItem(for: header))
@@ -133,22 +135,17 @@ final class MenuController: NSObject, NSMenuDelegate {
         refreshItem = refresh
         menu.addItem(refresh)
 
-        let currency = NSMenuItem(title: "Currency", action: nil, keyEquivalent: "")
-        currency.submenu = NSMenu()
-        currency.isEnabled = true
-        currencyItem = currency
-        configureCurrencyItem()
-        menu.addItem(currency)
+        let share = viewItem(for: makeShareView(), isEnabled: true)
+        share.title = "Share Snapshot…"
+        menu.addItem(share)
 
-        let launch = NSMenuItem(
-            title: "Launch at Login",
-            action: #selector(toggleLaunchAtLogin(_:)),
-            keyEquivalent: ""
+        let settings = NSMenuItem(
+            title: "Settings…",
+            action: #selector(showSettings(_:)),
+            keyEquivalent: ","
         )
-        launch.target = self
-        configureLaunchItem(launch)
-        launchItem = launch
-        menu.addItem(launch)
+        settings.target = self
+        menu.addItem(settings)
 
         let update = NSMenuItem(
             title: "",
@@ -161,10 +158,13 @@ final class MenuController: NSObject, NSMenuDelegate {
         menu.addItem(update)
         menu.addItem(.separator())
 
-        let version = Bundle.main.object(
-            forInfoDictionaryKey: "CFBundleShortVersionString"
-        ) as? String ?? "0.0.0"
-        menu.addItem(viewItem(for: MenuFooterView(version: version), isEnabled: true))
+        let quit = NSMenuItem(
+            title: "Quit Pi Helicopter",
+            action: #selector(quit(_:)),
+            keyEquivalent: "q"
+        )
+        quit.target = self
+        menu.addItem(quit)
     }
 
     private func select(range: DateRange) {
@@ -183,7 +183,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         let today = store.summary(for: .day)
         rangeView?.select(range: store.selectedRange)
         tabView?.select(tab: selectedTab)
-        headerView?.update(range: store.selectedRange, isRefreshing: store.isRefreshing, error: store.error)
+        headerView?.update(
+            range: store.selectedRange,
+            isRefreshing: store.isRefreshing,
+            error: store.error,
+            lastUpdated: store.lastUpdated
+        )
         overviewView?.update(summary: summary, today: today, money: currencyStore.money)
         spendView?.update(
             data: summary.dailySpend,
@@ -194,37 +199,6 @@ final class MenuController: NSObject, NSMenuDelegate {
         refreshItem?.isEnabled = !store.isRefreshing
     }
 
-    private func configureCurrencyItem() {
-        guard let item = currencyItem, let submenu = item.submenu else { return }
-        item.title = "Currency: \(currencyStore.selected.rawValue)"
-        submenu.removeAllItems()
-        for currency in DisplayCurrency.allCases {
-            let option = NSMenuItem(
-                title: currency.menuTitle,
-                action: #selector(selectCurrency(_:)),
-                keyEquivalent: ""
-            )
-            option.target = self
-            option.representedObject = currency.rawValue
-            option.state = currency == currencyStore.selected ? .on : .off
-            submenu.addItem(option)
-        }
-
-        guard currencyStore.selected != .usd else { return }
-        submenu.addItem(.separator())
-        let status: String
-        if currencyStore.isRefreshing {
-            status = "Updating ECB rates…"
-        } else if currencyStore.money.currency != currencyStore.selected {
-            status = "Rates unavailable; showing USD"
-        } else {
-            status = "European Central Bank rate"
-        }
-        let statusItem = NSMenuItem(title: status, action: nil, keyEquivalent: "")
-        statusItem.isEnabled = false
-        submenu.addItem(statusItem)
-    }
-
     private func viewItem(for view: NSView, isEnabled: Bool = false) -> NSMenuItem {
         let item = NSMenuItem()
         item.isEnabled = isEnabled
@@ -232,17 +206,40 @@ final class MenuController: NSObject, NSMenuDelegate {
         return item
     }
 
-    private func configureLaunchItem(_ item: NSMenuItem) {
-        item.title = "Launch at Login"
-        switch SMAppService.mainApp.status {
-        case .enabled:
-            item.state = .on
-        case .requiresApproval:
-            item.title = "Launch at Login (Needs Approval)"
-            item.state = .mixed
-        default:
-            item.state = .off
-        }
+    private func makeShareView() -> NSView {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: MenuStyle.width, height: 28))
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
+        view.heightAnchor.constraint(equalToConstant: 28).isActive = true
+
+        let button = NSButton(title: "Share Snapshot…", target: self, action: #selector(shareSnapshot(_:)))
+        button.alignment = .left
+        button.bezelStyle = .inline
+        button.font = NSFont.menuFont(ofSize: 0)
+        button.attributedTitle = NSAttributedString(
+            string: "Share Snapshot…",
+            attributes: [
+                .font: NSFont.menuFont(ofSize: 0),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+        button.contentTintColor = .labelColor
+        button.image = NSImage(
+            systemSymbolName: "square.and.arrow.up",
+            accessibilityDescription: "Share"
+        )
+        button.imagePosition = .imageLeading
+        button.isBordered = false
+        button.setAccessibilityLabel("Share snapshot")
+        button.sendAction(on: .leftMouseDown)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            button.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            button.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+        return view
     }
 
     private func configureUpdateItem(_ item: NSMenuItem) {
@@ -254,34 +251,78 @@ final class MenuController: NSObject, NSMenuDelegate {
         item.isHidden = false
     }
 
-    @objc private func refresh(_ sender: NSMenuItem) {
+    @objc func refresh(_ sender: Any?) {
         store.refresh()
         currencyStore.refreshIfNeeded()
     }
 
-    @objc private func selectCurrency(_ sender: NSMenuItem) {
-        guard let value = sender.representedObject as? String,
-              let currency = DisplayCurrency(rawValue: value)
-        else { return }
-        currencyStore.select(currency: currency)
+    @objc private func shareSnapshot(_ sender: NSButton) {
+        let image = DashboardSnapshotRenderer.image(for: DashboardSnapshotContent(
+            summary: store.summary(for: store.selectedRange),
+            today: store.summary(for: .day),
+            range: store.selectedRange,
+            tab: selectedTab,
+            money: currencyStore.money,
+            isRefreshing: store.isRefreshing,
+            error: store.error,
+            lastUpdated: store.lastUpdated
+        ))
+        let picker = NSSharingServicePicker(items: [image])
+        sharingPicker = picker
+        menu.cancelTrackingWithoutAnimation()
+        NSApp.activate(ignoringOtherApps: true)
+        guard let button = statusItem.button else { return }
+        picker.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     }
 
-    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
-        do {
-            switch SMAppService.mainApp.status {
-            case .enabled:
-                try SMAppService.mainApp.unregister()
-            case .requiresApproval:
-                if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
-                    NSWorkspace.shared.open(url)
-                }
-            default:
-                try SMAppService.mainApp.register()
-            }
-            configureLaunchItem(sender)
-        } catch {
-            NSAlert(error: error).runModal()
+    @objc func showSettings(_ sender: Any?) {
+        if settingsController == nil {
+            settingsController = SettingsWindowController(
+                currencyStore: currencyStore,
+                sessionsURL: store.sessionsURL
+            )
         }
+        NSApp.activate(ignoringOtherApps: true)
+        settingsController?.showWindow(sender)
+    }
+
+    @objc func openProjectWebsite(_ sender: Any?) {
+        guard let url = URL(string: "https://github.com/duarteocarmo/pi-tools/tree/master/packages/pi-helicopter")
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc func quit(_ sender: Any?) {
+        NSApp.terminate(nil)
+    }
+
+    @objc func chooseRange(_ sender: NSMenuItem) {
+        guard let value = sender.representedObject as? String,
+              let range = DateRange(rawValue: value)
+        else { return }
+        select(range: range)
+    }
+
+    @objc func chooseTab(_ sender: NSMenuItem) {
+        guard let value = sender.representedObject as? String,
+              let tab = DashboardTab(rawValue: value)
+        else { return }
+        select(tab: tab)
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(refresh(_:)) { return !store.isRefreshing }
+        if menuItem.action == #selector(chooseRange(_:)) {
+            menuItem.state = menuItem.representedObject as? String == store.selectedRange.rawValue
+                ? .on
+                : .off
+        }
+        if menuItem.action == #selector(chooseTab(_:)) {
+            menuItem.state = menuItem.representedObject as? String == selectedTab.rawValue
+                ? .on
+                : .off
+        }
+        return true
     }
 
     @objc private func showUpdate(_ sender: NSMenuItem) {
@@ -300,67 +341,10 @@ final class MenuController: NSObject, NSMenuDelegate {
 
 }
 
-final class MenuFooterView: NSView {
-    init(version: String) {
-        super.init(frame: NSRect(x: 0, y: 0, width: MenuStyle.width, height: 42))
-        translatesAutoresizingMaskIntoConstraints = false
-        widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
-        heightAnchor.constraint(equalToConstant: 42).isActive = true
-
-        let versionLabel = NSTextField(labelWithString: version)
-        versionLabel.font = MenuStyle.value
-        versionLabel.textColor = .secondaryLabelColor
-
-        let about = button(title: "About", action: #selector(showAbout(_:)))
-        let quit = button(title: "Quit", action: #selector(quit(_:)))
-        quit.keyEquivalent = "q"
-
-        for view in [versionLabel, about, quit] {
-            view.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(view)
-        }
-        NSLayoutConstraint.activate([
-            versionLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MenuStyle.padding),
-            versionLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            versionLabel.trailingAnchor.constraint(lessThanOrEqualTo: about.leadingAnchor, constant: -8),
-            about.centerYAnchor.constraint(equalTo: centerYAnchor),
-            about.trailingAnchor.constraint(equalTo: quit.leadingAnchor, constant: -6),
-            quit.centerYAnchor.constraint(equalTo: centerYAnchor),
-            quit.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuStyle.padding)
-        ])
-        setAccessibilityElement(true)
-        setAccessibilityRole(.group)
-        setAccessibilityLabel("Pi Helicopter version \(version)")
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func button(title: String, action: Selector) -> NSButton {
-        let button = NSButton(title: title, target: self, action: action)
-        button.bezelStyle = .rounded
-        button.controlSize = .small
-        button.font = MenuStyle.metadata
-        return button
-    }
-
-    @objc private func showAbout(_ sender: NSButton) {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .credits: NSAttributedString(string: "Fast, local Pi usage. Exchange rates come from the European Central Bank. No telemetry.")
-        ])
-    }
-
-    @objc private func quit(_ sender: NSButton) {
-        NSApp.terminate(nil)
-    }
-}
-
 final class SummaryHeaderView: NSView {
     private let statusLabel = NSTextField(labelWithString: "")
 
-    init(range: DateRange, isRefreshing: Bool, error: String?) {
+    init(range: DateRange, isRefreshing: Bool, error: String?, lastUpdated: Date?) {
         super.init(frame: NSRect(x: 0, y: 0, width: MenuStyle.width, height: 40))
         translatesAutoresizingMaskIntoConstraints = false
         widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
@@ -379,25 +363,56 @@ final class SummaryHeaderView: NSView {
             statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuStyle.padding),
             statusLabel.firstBaselineAnchor.constraint(equalTo: title.firstBaselineAnchor)
         ])
-        setAccessibilityElement(true)
-        setAccessibilityRole(.group)
-        setAccessibilityLabel("Pi Helicopter")
-        update(range: range, isRefreshing: isRefreshing, error: error)
+        title.setAccessibilityLabel("Pi Helicopter")
+        statusLabel.setAccessibilityLabel("Refresh status")
+        update(
+            range: range,
+            isRefreshing: isRefreshing,
+            error: error,
+            lastUpdated: lastUpdated
+        )
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(range: DateRange, isRefreshing: Bool, error: String?) {
-        if error != nil {
-            statusLabel.stringValue = "ERROR"
-            statusLabel.textColor = .systemRed
-        } else {
-            statusLabel.stringValue = isRefreshing ? "REFRESHING" : range.title.uppercased()
-            statusLabel.textColor = .secondaryLabelColor
-        }
-        setAccessibilityValue(error ?? "\(range.title)\(isRefreshing ? ", refreshing" : "")")
+    func update(
+        range: DateRange,
+        isRefreshing: Bool,
+        error: String?,
+        lastUpdated: Date?,
+        now: Date = Date()
+    ) {
+        statusLabel.stringValue = Self.statusTitle(
+            range: range,
+            isRefreshing: isRefreshing,
+            error: error,
+            lastUpdated: lastUpdated,
+            now: now
+        )
+        statusLabel.textColor = error == nil ? .secondaryLabelColor : .systemRed
+        statusLabel.toolTip = error
+        statusLabel.setAccessibilityValue(error ?? statusLabel.stringValue.lowercased())
+        statusLabel.setAccessibilityHelp(error)
+    }
+
+    static func statusTitle(
+        range: DateRange,
+        isRefreshing: Bool,
+        error: String?,
+        lastUpdated: Date?,
+        now: Date
+    ) -> String {
+        if error != nil { return "ERROR" }
+        if isRefreshing { return "REFRESHING" }
+        guard let lastUpdated else { return range.title.uppercased() }
+
+        let seconds = max(Int(now.timeIntervalSince(lastUpdated)), 0)
+        if seconds < 60 { return "UPDATED NOW" }
+        if seconds < 3_600 { return "UPDATED \(seconds / 60)M AGO" }
+        if seconds < 86_400 { return "UPDATED \(seconds / 3_600)H AGO" }
+        return "UPDATED \(seconds / 86_400)D AGO"
     }
 }
 

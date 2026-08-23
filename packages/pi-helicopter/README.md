@@ -13,10 +13,9 @@ Pi Helicopter shows local [Pi](https://pi.dev) usage in the macOS menu bar. It r
 ## Features
 
 - View costs, tokens, models, projects, languages, and tools.
-- Filter usage by date range.
-- Convert costs to USD, EUR, JPY, GBP, or CNY.
-- Start the app when you log in.
-- See when a newer version is available.
+- Filter usage by date range and share a snapshot of the selected view.
+- Use Settings to choose the currency, launch at login, and show the Pi sessions folder in Finder.
+- See when an update is available.
 
 ## Requirements
 
