@@ -1,12 +1,12 @@
-# Duarte's Pi tools
+# Duarte's pi tools
 
-Extensions, themes and apps I use with [Pi](https://pi.dev/)
+Extensions, themes and apps I use with [pi](https://pi.dev/)
 
 | Name | What it does |
 | --- | --- |
-| [`@duarteocarmo/pi-jumper`](./packages/pi-jumper) | Monitor and switch between pi sessions running on tmux (poor man's herdr) |
-| [`@duarteocarmo/pi-no-sleep`](./packages/pi-no-sleep) | /no-sleep command in pi to prevent macOS sleep |
-| [`@duarteocarmo/pi-preview`](./packages/pi-preview) | Read assistant responses in your browser |
-| [`@duarteocarmo/pi-subagents`](./packages/pi-subagents) | My shitty subagent extension |
-| [`@duarteocarmo/pi-modus-themes`](./packages/pi-modus-themes) | Modus themes for Pi|
-| [`pi-helicopter`](./packages/pi-helicopter) | Menu bar app to monitor Pi usage (cost, models, tokens, etc.)|
+| [`pi-jumper`](./packages/pi-jumper) | /jumper: jump and monitor other pi sessions running on tmux |
+| [`pi-no-sleep`](./packages/pi-no-sleep) | /no-sleep: prevent macOS sleep while running pi |
+| [`pi-preview`](./packages/pi-preview) | /preview: open assistant message in a nice browser window |
+| [`pi-subagents`](./packages/pi-subagents) | My shitty subagent extension |
+| [`pi-modus-themes`](./packages/pi-modus-themes) | Modus themes for Pi - they were missing |
+| [`pi-helicopter`](./packages/pi-helicopter) | A lightweight menu bar app to monitor your pi usage |
