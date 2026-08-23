@@ -25,11 +25,17 @@ Pi Helicopter requires macOS 13 or later and Swift 5.10 or later to build.
 ## Install
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-helicopter/install.sh | bash
+```
+
+To install it manually:
+
+```sh
 brew tap duarteocarmo/pi-tools https://github.com/duarteocarmo/pi-tools
 brew install --cask duarteocarmo/pi-tools/pi-helicopter
 ```
 
-After installation, open Applications in Finder. Control-click Pi Helicopter, select Open, then confirm Open.
+Pi Helicopter is ad hoc signed. If macOS blocks the first launch, open System Settings and select Privacy & Security. Scroll to Security, click Open Anyway for Pi Helicopter, then confirm Open.
 
 ## Build
 

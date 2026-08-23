@@ -161,13 +161,10 @@ final class MenuController: NSObject, NSMenuDelegate {
         menu.addItem(update)
         menu.addItem(.separator())
 
-        let about = NSMenuItem(title: "About Pi Helicopter", action: #selector(showAbout(_:)), keyEquivalent: "")
-        about.target = self
-        menu.addItem(about)
-
-        let quit = NSMenuItem(title: "Quit Pi Helicopter", action: #selector(quit(_:)), keyEquivalent: "q")
-        quit.target = self
-        menu.addItem(quit)
+        let version = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "0.0.0"
+        menu.addItem(viewItem(for: MenuFooterView(version: version), isEnabled: true))
     }
 
     private func select(range: DateRange) {
@@ -228,9 +225,9 @@ final class MenuController: NSObject, NSMenuDelegate {
         submenu.addItem(statusItem)
     }
 
-    private func viewItem(for view: NSView) -> NSMenuItem {
+    private func viewItem(for view: NSView, isEnabled: Bool = false) -> NSMenuItem {
         let item = NSMenuItem()
-        item.isEnabled = false
+        item.isEnabled = isEnabled
         item.view = view
         return item
     }
@@ -301,14 +298,61 @@ final class MenuController: NSObject, NSMenuDelegate {
         NSPasteboard.general.setString(command, forType: .string)
     }
 
-    @objc private func showAbout(_ sender: NSMenuItem) {
+}
+
+final class MenuFooterView: NSView {
+    init(version: String) {
+        super.init(frame: NSRect(x: 0, y: 0, width: MenuStyle.width, height: 42))
+        translatesAutoresizingMaskIntoConstraints = false
+        widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
+        heightAnchor.constraint(equalToConstant: 42).isActive = true
+
+        let versionLabel = NSTextField(labelWithString: version)
+        versionLabel.font = MenuStyle.value
+        versionLabel.textColor = .secondaryLabelColor
+
+        let about = button(title: "About", action: #selector(showAbout(_:)))
+        let quit = button(title: "Quit", action: #selector(quit(_:)))
+        quit.keyEquivalent = "q"
+
+        for view in [versionLabel, about, quit] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(view)
+        }
+        NSLayoutConstraint.activate([
+            versionLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: MenuStyle.padding),
+            versionLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            versionLabel.trailingAnchor.constraint(lessThanOrEqualTo: about.leadingAnchor, constant: -8),
+            about.centerYAnchor.constraint(equalTo: centerYAnchor),
+            about.trailingAnchor.constraint(equalTo: quit.leadingAnchor, constant: -6),
+            quit.centerYAnchor.constraint(equalTo: centerYAnchor),
+            quit.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -MenuStyle.padding)
+        ])
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Pi Helicopter version \(version)")
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func button(title: String, action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.bezelStyle = .rounded
+        button.controlSize = .small
+        button.font = MenuStyle.metadata
+        return button
+    }
+
+    @objc private func showAbout(_ sender: NSButton) {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: [
             .credits: NSAttributedString(string: "Fast, local Pi usage. Exchange rates come from the European Central Bank. No telemetry.")
         ])
     }
 
-    @objc private func quit(_ sender: NSMenuItem) {
+    @objc private func quit(_ sender: NSButton) {
         NSApp.terminate(nil)
     }
 }

@@ -16,6 +16,6 @@ cask "pi-helicopter" do
   zap trash: "~/Library/Preferences/com.duarteocarmo.pi-helicopter.plist"
 
   caveats <<~EOS
-    Pi Helicopter is not notarized. Open Applications in Finder, Control-click Pi Helicopter, select Open, then confirm Open.
+    Pi Helicopter is ad hoc signed. If macOS blocks the first launch, open System Settings and select Privacy & Security. Scroll to Security, click Open Anyway for Pi Helicopter, then confirm Open.
   EOS
 end

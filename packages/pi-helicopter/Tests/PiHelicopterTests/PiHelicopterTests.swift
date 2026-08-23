@@ -95,6 +95,7 @@ final class PiHelicopterTests: XCTestCase {
         let bars = BarListView(tab: .models, summary: summary)
         let rangePicker = RangePickerView(selected: .week) { _ in }
         let tabPicker = TabPickerView(selected: .models) { _ in }
+        let footer = MenuFooterView(version: "0.1.2")
         let rangeControl = try XCTUnwrap(rangePicker.subviews.first as? NSSegmentedControl)
         let tabControl = try XCTUnwrap(tabPicker.subviews.first as? NSSegmentedControl)
         XCTAssertEqual(rangePicker.frame.height, tabPicker.frame.height)
@@ -120,7 +121,7 @@ final class PiHelicopterTests: XCTestCase {
 
         for appearanceName in appearances {
             let appearance = try XCTUnwrap(NSAppearance(named: appearanceName))
-            for view in [spend, overview] {
+            for view in [spend, overview, footer] {
                 view.appearance = appearance
                 let image = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
                 view.cacheDisplay(in: view.bounds, to: image)
@@ -141,6 +142,11 @@ final class PiHelicopterTests: XCTestCase {
         XCTAssertTrue(tokenAccessibility.contains("Cached"))
         XCTAssertTrue(tokenAccessibility.contains("Input"))
         XCTAssertTrue(tokenAccessibility.contains("Output"))
+        let footerButtons = footer.subviews.compactMap { $0 as? NSButton }
+        let footerLabels = footer.subviews.compactMap { $0 as? NSTextField }
+        XCTAssertEqual(footerButtons.map(\.title).sorted(), ["About", "Quit"])
+        XCTAssertTrue(footerButtons.allSatisfy { $0.target === footer && $0.action != nil })
+        XCTAssertEqual(footerLabels.first?.stringValue, "0.1.2")
         XCTAssertEqual(DateRange.day.shortTitle, "Today")
         XCTAssertEqual(DateRange.quarter.days, 90)
     }
