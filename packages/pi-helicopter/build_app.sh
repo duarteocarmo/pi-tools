@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP="$ROOT/build/Pi Helicopter.app"
 CONTENTS="$APP/Contents"
 BINARY="$ROOT/.build/apple/Products/Release/pi-helicopter"
+APP_VERSION="${APP_VERSION:-0.1.0}"
 
 cd "$ROOT"
 swift build -c release --arch arm64 --arch x86_64
@@ -13,7 +14,7 @@ mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
 cp "$BINARY" "$CONTENTS/MacOS/pi-helicopter"
 cp "$ROOT/Resources/AppIcon.icns" "$CONTENTS/Resources/AppIcon.icns"
 
-cat > "$CONTENTS/Info.plist" <<'PLIST'
+cat > "$CONTENTS/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -33,7 +34,7 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>$APP_VERSION</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>

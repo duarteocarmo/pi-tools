@@ -5,6 +5,7 @@ import ServiceManagement
 final class MenuController: NSObject, NSMenuDelegate {
     private let store: StatsStore
     private let currencyStore: CurrencyStore
+    private let updateStore: UpdateStore
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
     private var refreshTimer: Timer?
@@ -21,10 +22,12 @@ final class MenuController: NSObject, NSMenuDelegate {
     private var refreshItem: NSMenuItem?
     private var currencyItem: NSMenuItem?
     private var launchItem: NSMenuItem?
+    private var updateItem: NSMenuItem?
 
-    init(store: StatsStore, currencyStore: CurrencyStore) {
+    init(store: StatsStore, currencyStore: CurrencyStore, updateStore: UpdateStore) {
         self.store = store
         self.currencyStore = currencyStore
+        self.updateStore = updateStore
         super.init()
 
         menu.delegate = self
@@ -38,9 +41,13 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         store.onChange = { [weak self] in self?.storeChanged() }
         currencyStore.onChange = { [weak self] in self?.currencyChanged() }
+        updateStore.onChange = { [weak self] in self?.updateChanged() }
         store.refresh()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.store.refresh() }
+            Task { @MainActor in
+                self?.store.refresh()
+                self?.updateStore.checkIfNeeded()
+            }
         }
     }
 
@@ -51,10 +58,12 @@ final class MenuController: NSObject, NSMenuDelegate {
             updatePresentedSummary()
             configureCurrencyItem()
             if let launchItem { configureLaunchItem(launchItem) }
+            if let updateItem { configureUpdateItem(updateItem) }
         }
         if let lastUpdated = store.lastUpdated, Date().timeIntervalSince(lastUpdated) > 60 {
             store.refresh()
         }
+        updateStore.checkIfNeeded()
     }
 
     private func storeChanged() {
@@ -66,6 +75,11 @@ final class MenuController: NSObject, NSMenuDelegate {
         guard menu.numberOfItems > 0 else { return }
         configureCurrencyItem()
         updatePresentedSummary()
+    }
+
+    private func updateChanged() {
+        guard let updateItem else { return }
+        configureUpdateItem(updateItem)
     }
 
     private func rebuildMenu() {
@@ -135,6 +149,16 @@ final class MenuController: NSObject, NSMenuDelegate {
         configureLaunchItem(launch)
         launchItem = launch
         menu.addItem(launch)
+
+        let update = NSMenuItem(
+            title: "",
+            action: #selector(showUpdate(_:)),
+            keyEquivalent: ""
+        )
+        update.target = self
+        configureUpdateItem(update)
+        updateItem = update
+        menu.addItem(update)
         menu.addItem(.separator())
 
         let about = NSMenuItem(title: "About Pi Helicopter", action: #selector(showAbout(_:)), keyEquivalent: "")
@@ -224,6 +248,15 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
     }
 
+    private func configureUpdateItem(_ item: NSMenuItem) {
+        guard let version = updateStore.availableVersion else {
+            item.isHidden = true
+            return
+        }
+        item.title = "Update Available: \(version)…"
+        item.isHidden = false
+    }
+
     @objc private func refresh(_ sender: NSMenuItem) {
         store.refresh()
         currencyStore.refreshIfNeeded()
@@ -252,6 +285,20 @@ final class MenuController: NSObject, NSMenuDelegate {
         } catch {
             NSAlert(error: error).runModal()
         }
+    }
+
+    @objc private func showUpdate(_ sender: NSMenuItem) {
+        guard let version = updateStore.availableVersion else { return }
+        let command = "brew upgrade --cask pi-helicopter"
+        let alert = NSAlert()
+        alert.messageText = "Pi Helicopter \(version) is available"
+        alert.informativeText = "Run this command in Terminal:\n\n\(command)"
+        alert.addButton(withTitle: "Copy Command")
+        alert.addButton(withTitle: "Not Now")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
     }
 
     @objc private func showAbout(_ sender: NSMenuItem) {

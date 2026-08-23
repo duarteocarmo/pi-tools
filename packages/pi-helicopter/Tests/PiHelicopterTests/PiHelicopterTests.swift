@@ -175,6 +175,24 @@ final class PiHelicopterTests: XCTestCase {
         XCTAssertEqual(rates.usdRates["CNY"], 6)
     }
 
+    func testFindsLatestPiHelicopterRelease() throws {
+        let data = Data("""
+        [
+          {"tag_name":"another-tool-v9.0.0","draft":false,"prerelease":false},
+          {"tag_name":"pi-helicopter-v0.3.0","draft":true,"prerelease":false},
+          {"tag_name":"pi-helicopter-v0.2.1","draft":false,"prerelease":true},
+          {"tag_name":"pi-helicopter-v0.1.9","draft":false,"prerelease":false},
+          {"tag_name":"pi-helicopter-v0.2.0","draft":false,"prerelease":false}
+        ]
+        """.utf8)
+
+        XCTAssertEqual(try AppUpdate.latestVersion(data: data), AppVersion(value: "0.2.0"))
+        let older = try XCTUnwrap(AppVersion(value: "0.9.9"))
+        let newer = try XCTUnwrap(AppVersion(value: "0.10.0"))
+        XCTAssertLessThan(older, newer)
+        XCTAssertNil(AppVersion(value: "0.1"))
+    }
+
     func testScannerReusesAndUpdatesCache() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

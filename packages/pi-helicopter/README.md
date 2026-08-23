@@ -16,6 +16,7 @@ Pi Helicopter shows local [Pi](https://pi.dev) usage in the macOS menu bar. It r
 - Filter usage by date range.
 - Convert costs to USD, EUR, JPY, GBP, or CNY.
 - Start the app when you log in.
+- See when a newer version is available.
 
 ## Requirements
 
@@ -24,7 +25,8 @@ Pi Helicopter requires macOS 13 or later and Swift 5.10 or later to build.
 ## Install
 
 ```sh
-brew install --cask duarteocarmo/tap/pi-helicopter
+brew tap duarteocarmo/pi-tools https://github.com/duarteocarmo/pi-tools
+brew install --cask duarteocarmo/pi-tools/pi-helicopter
 ```
 
 After installation, open Applications in Finder. Control-click Pi Helicopter, select Open, then confirm Open.
@@ -39,3 +41,7 @@ open "build/Pi Helicopter.app"
 Run the tests with `make test`.
 
 The build uses an ad hoc signature. macOS may ask you to confirm that you want to open the app when you move it to another Mac.
+
+## Release
+
+The [release workflow](../../.github/workflows/release-pi-helicopter.yml) creates a patch release when app code reaches `master`. It also updates the [Homebrew cask](../../Casks/pi-helicopter.rb).

@@ -1,0 +1,114 @@
+name: Release Pi Helicopter
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "packages/pi-helicopter/Sources/**"
+      - "packages/pi-helicopter/Resources/**"
+      - "packages/pi-helicopter/Package.swift"
+      - "packages/pi-helicopter/Package.resolved"
+      - "packages/pi-helicopter/build_app.sh"
+  workflow_dispatch:
+
+concurrency:
+  group: release-pi-helicopter
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Test
+        working-directory: packages/pi-helicopter
+        run: swift test
+
+      - name: Choose version
+        id: version
+        run: |
+          set -euo pipefail
+          existing_tag=$(git tag --points-at "$GITHUB_SHA" --list "pi-helicopter-v*" --sort=-v:refname | head -n 1)
+          latest_tag=$(git tag --list "pi-helicopter-v*" --sort=-v:refname | head -n 1)
+
+          if [[ -n "$existing_tag" ]]; then
+            version=${existing_tag#pi-helicopter-v}
+          elif [[ -z "$latest_tag" ]]; then
+            version=0.1.0
+          else
+            current=${latest_tag#pi-helicopter-v}
+            if [[ ! "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              echo "Invalid Pi Helicopter tag: $latest_tag" >&2
+              exit 1
+            fi
+            version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+          fi
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid Pi Helicopter version: $version" >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=pi-helicopter-v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build app
+        working-directory: packages/pi-helicopter
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: ./build_app.sh
+
+      - name: Create archive
+        id: archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "packages/pi-helicopter/build/Pi Helicopter.app" \
+            "Pi-Helicopter-$VERSION.zip"
+          sha256=$(shasum -a 256 "Pi-Helicopter-$VERSION.zip" | awk '{print $1}')
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Pi Helicopter $VERSION" \
+              --notes "Built from commit $GITHUB_SHA."
+          fi
+          gh release upload "$TAG" "Pi-Helicopter-$VERSION.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Update Homebrew cask
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA256: ${{ steps.archive.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          git pull --rebase
+          perl -0pi -e 's/version "[^"]+"/version "$ENV{VERSION}"/; s/sha256 "[a-f0-9]+"/sha256 "$ENV{SHA256}"/' Casks/pi-helicopter.rb
+
+          if git diff --quiet -- Casks/pi-helicopter.rb; then
+            echo "Cask already uses Pi Helicopter $VERSION"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/pi-helicopter.rb
+          git commit -m "Update Pi Helicopter to $VERSION"
+          git push
