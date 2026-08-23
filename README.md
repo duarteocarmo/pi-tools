@@ -1,23 +1,13 @@
-# Duarte's tools for pi
+# Duarte's tools and extensions for pi π, the coding agent.
 
-Just stuff I use.
+Extensions, themes and apps I used with [Pi](https://pi.dev/)
 
-## Install all Pi tools
-
-Install every Pi package in this repository from Git:
-
-```sh
-pi install git:github.com/duarteocarmo/pi-tools
-```
-
-A Git installation loads every Pi package listed below, except Pi Helicopter. To install only one package, use its npm installation command.
-
-| Package | What it does |
+| Name | What it does |
 | --- | --- |
-| [`@duarteocarmo/pi-jumper`](./packages/pi-jumper) | Lists live Pi sessions and jumps between tmux panes. |
-| [`@duarteocarmo/pi-no-sleep`](./packages/pi-no-sleep) | Prevents macOS display sleep while enabled. |
-| [`@duarteocarmo/pi-preview`](./packages/pi-preview) | Opens the latest assistant response as HTML in a browser. |
-| [`@duarteocarmo/pi-session-breakdown`](./packages/pi-session-breakdown) | Shows session, message, token, and cost statistics. |
-| [`@duarteocarmo/pi-subagents`](./packages/pi-subagents) | Runs bounded isolated Pi subagents. |
-| [`@duarteocarmo/pi-modus-themes`](./packages/pi-modus-themes) | Provides Modus themes and follows macOS light or dark appearance. |
-| [`pi-helicopter`](./packages/pi-helicopter) | Shows local Pi usage in the macOS menu bar. |
+| [`@duarteocarmo/pi-jumper`](./packages/pi-jumper) | Monitor and switch between pi sessions running on tmux (poor man's herdr) |
+| [`@duarteocarmo/pi-no-sleep`](./packages/pi-no-sleep) | /no-sleep command in pi to prevent macOS sleep |
+| [`@duarteocarmo/pi-preview`](./packages/pi-preview) | Read assistant responses in your browser |
+| [`@duarteocarmo/pi-session-breakdown`](./packages/pi-session-breakdown) | Shows session, message, token, and cost statistics.(stolen from armin) |
+| [`@duarteocarmo/pi-subagents`](./packages/pi-subagents) | My shitty subagent extension |
+| [`@duarteocarmo/pi-modus-themes`](./packages/pi-modus-themes) | Modus themes for Pi|
+| [`pi-helicopter`](./packages/pi-helicopter) | Menu bar app to monitor Pi usage (cost, models, tokens, etc.)|
