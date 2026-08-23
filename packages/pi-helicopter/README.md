@@ -27,6 +27,8 @@ Pi Helicopter requires macOS 13 or later and Swift 5.10 or later to build.
 brew install --cask duarteocarmo/tap/pi-helicopter
 ```
 
+After installation, open Applications in Finder. Control-click Pi Helicopter, select Open, then confirm Open.
+
 ## Build
 
 ```sh
