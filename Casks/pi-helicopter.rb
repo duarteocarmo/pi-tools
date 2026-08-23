@@ -1,6 +1,6 @@
 cask "pi-helicopter" do
-  version "0.1.0"
-  sha256 "7210ddc99c65fe7ad805170604acd0e2e0589060356f6757397ca7a16beec0c0"
+  version "0.1.1"
+  sha256 "a0caab6e6e01b514cf9944a6a667cc3249d5f7e8a6fd7c2d2cec095dbcfa96dc"
 
   url "https://github.com/duarteocarmo/pi-tools/releases/download/pi-helicopter-v#{version}/Pi-Helicopter-#{version}.zip"
   name "Pi Helicopter"
