@@ -16,17 +16,14 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      NPM_TOKEN_CONFIGURED: ${{ secrets.NPM_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -62,15 +59,15 @@ jobs:
           echo "Changed packages: ${packages:-none}"
 
       - name: Prepare package versions
-        if: steps.changes.outputs.packages != ''
+        if: steps.changes.outputs.packages != '' && vars.NPM_TRUSTED_PUBLISHING == 'true'
         run: node scripts/prepare-publish.mjs ${{ steps.changes.outputs.packages }}
 
       - name: Publish changed packages
-        if: steps.changes.outputs.packages != '' && env.NPM_TOKEN_CONFIGURED == 'true'
+        if: steps.changes.outputs.packages != '' && vars.NPM_TRUSTED_PUBLISHING == 'true'
         env:
           PACKAGES: ${{ steps.changes.outputs.packages }}
         run: |
           set -euo pipefail
           for package in $PACKAGES; do
-            npm publish --workspace="./packages/$package" --access public --provenance
+            npm publish --workspace="./packages/$package" --access public
           done
