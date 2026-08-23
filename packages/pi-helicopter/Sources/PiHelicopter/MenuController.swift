@@ -20,7 +20,6 @@ final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
     private var barsView: BarListView?
     private var refreshItem: NSMenuItem?
     private var updateItem: NSMenuItem?
-    private var sharingPicker: NSSharingServicePicker?
     private var settingsController: SettingsWindowController?
 
     init(store: StatsStore, currencyStore: CurrencyStore, updateStore: UpdateStore) {
@@ -135,10 +134,6 @@ final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
         refreshItem = refresh
         menu.addItem(refresh)
 
-        let share = viewItem(for: makeShareView(), isEnabled: true)
-        share.title = "Share Snapshot…"
-        menu.addItem(share)
-
         let settings = NSMenuItem(
             title: "Settings…",
             action: #selector(showSettings(_:)),
@@ -206,42 +201,6 @@ final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
         return item
     }
 
-    private func makeShareView() -> NSView {
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: MenuStyle.width, height: 28))
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.widthAnchor.constraint(equalToConstant: MenuStyle.width).isActive = true
-        view.heightAnchor.constraint(equalToConstant: 28).isActive = true
-
-        let button = NSButton(title: "Share Snapshot…", target: self, action: #selector(shareSnapshot(_:)))
-        button.alignment = .left
-        button.bezelStyle = .inline
-        button.font = NSFont.menuFont(ofSize: 0)
-        button.attributedTitle = NSAttributedString(
-            string: "Share Snapshot…",
-            attributes: [
-                .font: NSFont.menuFont(ofSize: 0),
-                .foregroundColor: NSColor.labelColor
-            ]
-        )
-        button.contentTintColor = .labelColor
-        button.image = NSImage(
-            systemSymbolName: "square.and.arrow.up",
-            accessibilityDescription: "Share"
-        )
-        button.imagePosition = .imageLeading
-        button.isBordered = false
-        button.setAccessibilityLabel("Share snapshot")
-        button.sendAction(on: .leftMouseDown)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-            button.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-            button.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-        return view
-    }
-
     private func configureUpdateItem(_ item: NSMenuItem) {
         guard let version = updateStore.availableVersion else {
             item.isHidden = true
@@ -254,25 +213,6 @@ final class MenuController: NSObject, NSMenuDelegate, NSMenuItemValidation {
     @objc func refresh(_ sender: Any?) {
         store.refresh()
         currencyStore.refreshIfNeeded()
-    }
-
-    @objc private func shareSnapshot(_ sender: NSButton) {
-        let image = DashboardSnapshotRenderer.image(for: DashboardSnapshotContent(
-            summary: store.summary(for: store.selectedRange),
-            today: store.summary(for: .day),
-            range: store.selectedRange,
-            tab: selectedTab,
-            money: currencyStore.money,
-            isRefreshing: store.isRefreshing,
-            error: store.error,
-            lastUpdated: store.lastUpdated
-        ))
-        let picker = NSSharingServicePicker(items: [image])
-        sharingPicker = picker
-        menu.cancelTrackingWithoutAnimation()
-        NSApp.activate(ignoringOtherApps: true)
-        guard let button = statusItem.button else { return }
-        picker.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     }
 
     @objc func showSettings(_ sender: Any?) {

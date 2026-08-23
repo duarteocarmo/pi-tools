@@ -91,16 +91,6 @@ final class PiHelicopterTests: XCTestCase {
             tools: [NamedValue(name: "read", primary: 5, count: 5)]
         )
         let today = Summary(cost: 2.5)
-        let snapshotContent = DashboardSnapshotContent(
-            summary: summary,
-            today: today,
-            range: .week,
-            tab: .models,
-            money: .usd,
-            isRefreshing: false,
-            error: nil,
-            lastUpdated: nil
-        )
         let overview = OverviewView(summary: summary, today: today)
         let bars = BarListView(tab: .models, summary: summary)
         let rangePicker = RangePickerView(selected: .week) { _ in }
@@ -142,16 +132,6 @@ final class PiHelicopterTests: XCTestCase {
                 view.cacheDisplay(in: view.bounds, to: image)
                 XCTAssertGreaterThan(image.pixelsWide, 0)
             }
-            let snapshot = DashboardSnapshotRenderer.image(
-                for: snapshotContent,
-                appearance: appearance
-            )
-            let snapshotRepresentation = try XCTUnwrap(
-                snapshot.representations.first as? NSBitmapImageRep
-            )
-            XCTAssertEqual(snapshotRepresentation.pixelsWide, 600)
-            XCTAssertEqual(snapshotRepresentation.pixelsHigh, 1_266)
-
             bars.appearance = appearance
             for tab in DashboardTab.allCases {
                 bars.update(tab: tab, summary: summary)

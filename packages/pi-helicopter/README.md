@@ -13,7 +13,7 @@ Pi Helicopter shows local [Pi](https://pi.dev) usage in the macOS menu bar. It r
 ## Features
 
 - View costs, tokens, models, projects, languages, and tools.
-- Filter usage by date range and share a snapshot of the selected view.
+- Filter usage by date range.
 - Use Settings to choose the currency, launch at login, and show the Pi sessions folder in Finder.
 - See when an update is available.
 
