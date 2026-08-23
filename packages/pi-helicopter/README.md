@@ -30,6 +30,12 @@ USD remains fully offline. When you select another currency, Pi Helicopter downl
 
 Pi Helicopter requires macOS 13 or later and Swift 5.10 or later to build.
 
+## Install
+
+```sh
+brew install --cask duarteocarmo/tap/pi-helicopter
+```
+
 ## Build
 
 ```sh

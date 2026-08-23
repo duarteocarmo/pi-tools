@@ -4,10 +4,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP="$ROOT/build/Pi Helicopter.app"
 CONTENTS="$APP/Contents"
-BINARY="$ROOT/.build/release/pi-helicopter"
+BINARY="$ROOT/.build/apple/Products/Release/pi-helicopter"
 
 cd "$ROOT"
-swift build -c release
+swift build -c release --arch arm64 --arch x86_64
 rm -rf "$APP"
 mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
 cp "$BINARY" "$CONTENTS/MacOS/pi-helicopter"
