@@ -4,15 +4,32 @@
   "type": "module",
   "description": "Modus themes with automatic macOS appearance syncing.",
   "author": "Duarte O.Carmo",
-  "repository": { "type": "git", "url": "git+https://github.com/duarteocarmo/pi-tools.git", "directory": "packages/pi-modus-themes" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duarteocarmo/pi-tools.git",
+    "directory": "packages/pi-modus-themes"
+  },
   "homepage": "https://github.com/duarteocarmo/pi-tools/tree/master/packages/pi-modus-themes",
-  "bugs": { "url": "https://github.com/duarteocarmo/pi-tools/issues" },
+  "bugs": {
+    "url": "https://github.com/duarteocarmo/pi-tools/issues"
+  },
   "license": "GPL-3.0-or-later",
-  "keywords": ["pi-package", "pi-extension", "pi-theme"],
-  "files": ["index.ts", "themes"],
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-theme"
+  ],
+  "files": [
+    "index.ts",
+    "themes"
+  ],
   "pi": {
-    "extensions": ["./index.ts"],
-    "themes": ["./themes"]
+    "extensions": [
+      "./index.ts"
+    ],
+    "themes": [
+      "./themes"
+    ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

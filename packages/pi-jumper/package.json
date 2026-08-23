@@ -4,12 +4,27 @@
   "type": "module",
   "description": "See and jump between live Pi sessions.",
   "author": "Duarte O.Carmo",
-  "repository": { "type": "git", "url": "git+https://github.com/duarteocarmo/pi-tools.git", "directory": "packages/pi-jumper" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duarteocarmo/pi-tools.git",
+    "directory": "packages/pi-jumper"
+  },
   "homepage": "https://github.com/duarteocarmo/pi-tools/tree/master/packages/pi-jumper",
-  "bugs": { "url": "https://github.com/duarteocarmo/pi-tools/issues" },
-  "keywords": ["pi-package", "pi-extension"],
+  "bugs": {
+    "url": "https://github.com/duarteocarmo/pi-tools/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
   "license": "MIT",
-  "files": ["index.ts", "src/activity.ts", "src/registry.ts", "src/tmux.ts", "src/ui.ts"],
+  "files": [
+    "index.ts",
+    "src/activity.ts",
+    "src/registry.ts",
+    "src/tmux.ts",
+    "src/ui.ts"
+  ],
   "scripts": {
     "test": "node --experimental-strip-types --test src/*.test.ts",
     "check": "tsc --noEmit -p tsconfig.json"
@@ -18,7 +33,9 @@
     "node": ">=22.6"
   },
   "pi": {
-    "extensions": ["./index.ts"]
+    "extensions": [
+      "./index.ts"
+    ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

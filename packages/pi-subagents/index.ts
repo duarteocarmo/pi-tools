@@ -110,7 +110,7 @@ function copyUsage(usage: Usage): Usage {
 
 function readConfig(): Config {
   const value = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as Partial<Config>;
-  if (!value.model || !value.model.includes("/")) {
+  if (!value.model?.includes("/")) {
     throw new Error(`Invalid subagent model in ${CONFIG_PATH}. Use provider/model-id.`);
   }
   if (!value.thinkingLevel || !THINKING_LEVELS.includes(value.thinkingLevel)) {
@@ -181,7 +181,11 @@ function addTimelineEvent(options: { run: RunState; event: TimelineEvent }) {
 
 function currentActivity(run: RunState) {
   const active = run.timeline.filter(
-    (event) => event.type === "tool" && event.status === "running" && event.toolCallId && run.activeToolIds.has(event.toolCallId),
+    (event) =>
+      event.type === "tool" &&
+      event.status === "running" &&
+      event.toolCallId &&
+      run.activeToolIds.has(event.toolCallId),
   );
   if (active.length === 0) return "thinking";
   if (active.length === 1) return active[0].text;
@@ -218,9 +222,7 @@ function boundedResult(output: string) {
     maxBytes: RESULT_MAX_BYTES,
     maxLines: 500,
   });
-  return result.truncated
-    ? `${result.content}\n\n[Subagent output truncated at 16 KB.]`
-    : result.content;
+  return result.truncated ? `${result.content}\n\n[Subagent output truncated at 16 KB.]` : result.content;
 }
 
 function formatTokens(count: number) {
@@ -242,9 +244,10 @@ function formatStats(details: SubagentDetails) {
     formatDuration(details.durationMs),
   ];
   if (details.contextTokens > 0) {
-    const context = details.contextWindow > 0
-      ? `${Math.round((details.contextTokens / details.contextWindow) * 100)}% ctx`
-      : `${formatTokens(details.contextTokens)} ctx`;
+    const context =
+      details.contextWindow > 0
+        ? `${Math.round((details.contextTokens / details.contextWindow) * 100)}% ctx`
+        : `${formatTokens(details.contextTokens)} ctx`;
     stats.splice(2, 0, context);
   }
   if (details.usage.cost.total > 0) stats.push(`$${details.usage.cost.total.toFixed(4)}`);
@@ -261,11 +264,12 @@ function renderTimelineEvent(event: TimelineEvent, theme: Theme) {
   if (event.type === "assistant") {
     return theme.fg("toolOutput", `  ${event.text}`);
   }
-  const icon = event.status === "running"
-    ? theme.fg("warning", "▸")
-    : event.status === "error"
-      ? theme.fg("error", "✗")
-      : theme.fg("muted", "✓");
+  const icon =
+    event.status === "running"
+      ? theme.fg("warning", "▸")
+      : event.status === "error"
+        ? theme.fg("error", "✗")
+        : theme.fg("muted", "✓");
   return `${icon} ${theme.fg(event.status === "running" ? "text" : "muted", event.text)}`;
 }
 
@@ -277,18 +281,23 @@ function renderSubagentResult(
   const details = result.details as SubagentDetails | undefined;
   if (!details) {
     const content = result.content[0];
-    return new Text(content?.type === "text" ? content.text ?? "(no output)" : "(no output)", 0, 0);
+    return new Text(content?.type === "text" ? (content.text ?? "(no output)") : "(no output)", 0, 0);
   }
 
   const header = `${statusIcon(details, theme)} ${theme.fg("toolTitle", theme.bold(details.title))} ${theme.fg("muted", `(${details.model})`)} ${theme.fg("dim", `· ${formatStats(details)}`)}`;
   if (!expanded) {
-    const activity = details.status === "running"
-      ? details.activity
-      : details.error
-        ? details.error
-        : previewText(details.output) || "completed";
+    const activity =
+      details.status === "running"
+        ? details.activity
+        : details.error
+          ? details.error
+          : previewText(details.output) || "completed";
     const hint = details.timeline.length > 0 ? ` · ${keyHint("app.tools.expand", "details")}` : "";
-    return new Text(`${header}\n${theme.fg("dim", "⎿  ")}${theme.fg(details.status === "error" ? "error" : "toolOutput", activity)}${theme.fg("dim", hint)}`, 0, 0);
+    return new Text(
+      `${header}\n${theme.fg("dim", "⎿  ")}${theme.fg(details.status === "error" ? "error" : "toolOutput", activity)}${theme.fg("dim", hint)}`,
+      0,
+      0,
+    );
   }
 
   const container = new Container();

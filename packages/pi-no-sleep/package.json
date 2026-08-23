@@ -4,14 +4,28 @@
   "type": "module",
   "description": "Prevent macOS display sleep from Pi.",
   "author": "Duarte O.Carmo",
-  "repository": { "type": "git", "url": "git+https://github.com/duarteocarmo/pi-tools.git", "directory": "packages/pi-no-sleep" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duarteocarmo/pi-tools.git",
+    "directory": "packages/pi-no-sleep"
+  },
   "homepage": "https://github.com/duarteocarmo/pi-tools/tree/master/packages/pi-no-sleep",
-  "bugs": { "url": "https://github.com/duarteocarmo/pi-tools/issues" },
+  "bugs": {
+    "url": "https://github.com/duarteocarmo/pi-tools/issues"
+  },
   "license": "Apache-2.0",
-  "keywords": ["pi-package", "pi-extension"],
-  "files": ["index.ts", "demo.mp4"],
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "files": [
+    "index.ts",
+    "demo.mp4"
+  ],
   "pi": {
-    "extensions": ["./index.ts"]
+    "extensions": [
+      "./index.ts"
+    ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

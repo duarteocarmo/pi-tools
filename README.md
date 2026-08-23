@@ -1,6 +1,16 @@
 # Duarte's tools for pi
 
-Just stuff I use. 
+Just stuff I use.
+
+## Install all Pi tools
+
+Install every Pi package in this repository from Git:
+
+```sh
+pi install git:github.com/duarteocarmo/pi-tools
+```
+
+A Git installation loads every Pi package listed below, except Pi Helicopter. To install only one package, use its npm installation command.
 
 | Package | What it does |
 | --- | --- |

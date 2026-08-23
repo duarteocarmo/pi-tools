@@ -7,11 +7,7 @@ import { marked } from "marked";
 import hljs from "highlight.js";
 
 function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 const renderer = new marked.Renderer();
@@ -345,8 +341,8 @@ export default function (pi: ExtensionAPI) {
             lastAssistantText = content;
           } else if (Array.isArray(content)) {
             lastAssistantText = content
-              .filter((block: any) => block.type === "text")
-              .map((block: any) => block.text)
+              .filter((block) => block.type === "text")
+              .map((block) => block.text)
               .join("\n");
           }
           break;
@@ -365,7 +361,9 @@ export default function (pi: ExtensionAPI) {
       ctx.ui.notify("Opened preview in browser", "info");
 
       setTimeout(() => {
-        try { unlinkSync(filepath); } catch {}
+        try {
+          unlinkSync(filepath);
+        } catch {}
       }, CLEANUP_DELAY_MS);
     },
   });

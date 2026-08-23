@@ -4,13 +4,26 @@
   "type": "module",
   "description": "Preview the latest Pi response as HTML.",
   "author": "Duarte O.Carmo",
-  "repository": { "type": "git", "url": "git+https://github.com/duarteocarmo/pi-tools.git", "directory": "packages/pi-preview" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duarteocarmo/pi-tools.git",
+    "directory": "packages/pi-preview"
+  },
   "homepage": "https://github.com/duarteocarmo/pi-tools/tree/master/packages/pi-preview",
-  "bugs": { "url": "https://github.com/duarteocarmo/pi-tools/issues" },
-  "keywords": ["pi-package", "pi-extension"],
-  "files": ["index.ts"],
+  "bugs": {
+    "url": "https://github.com/duarteocarmo/pi-tools/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "files": [
+    "index.ts"
+  ],
   "pi": {
-    "extensions": ["./index.ts"]
+    "extensions": [
+      "./index.ts"
+    ]
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

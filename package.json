@@ -20,9 +20,12 @@
       "./packages/pi-session-breakdown/index.ts",
       "./packages/pi-subagents/index.ts"
     ],
-    "themes": ["./packages/pi-modus-themes/themes"]
+    "themes": [
+      "./packages/pi-modus-themes/themes"
+    ]
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.10",
     "@earendil-works/pi-ai": "0.84.2",
     "@earendil-works/pi-coding-agent": "0.84.2",
     "@earendil-works/pi-tui": "0.84.2",
