@@ -1,6 +1,6 @@
-# Duarte's tools and extensions for pi π, the coding agent.
+# Duarte's Pi tools
 
-Extensions, themes and apps I used with [Pi](https://pi.dev/)
+Extensions, themes and apps I use with [Pi](https://pi.dev/)
 
 | Name | What it does |
 | --- | --- |
