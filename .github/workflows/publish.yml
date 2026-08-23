@@ -16,6 +16,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,9 +65,8 @@ jobs:
         run: node scripts/prepare-publish.mjs ${{ steps.changes.outputs.packages }}
 
       - name: Publish changed packages
-        if: steps.changes.outputs.packages != ''
+        if: steps.changes.outputs.packages != '' && env.NODE_AUTH_TOKEN != ''
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PACKAGES: ${{ steps.changes.outputs.packages }}
         run: |
           set -euo pipefail

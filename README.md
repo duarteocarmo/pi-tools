@@ -1,4 +1,4 @@
-# pi-extensions-doc
+# Duarte's tools for pi
 
 | Package | What it does |
 | --- | --- |
