@@ -1,5 +1,7 @@
 # Duarte's tools for pi
 
+Just stuff I use. 
+
 | Package | What it does |
 | --- | --- |
 | `@duarteocarmo/pi-jumper` | Lists live Pi sessions and jumps between tmux panes. |
