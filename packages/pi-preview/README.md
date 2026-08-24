@@ -5,9 +5,7 @@
 
 Pi Preview opens the latest assistant response as an HTML page in your browser. Use `/preview` when you want to read the response outside the terminal.
 
-![Browser preview](./preview.png)
-
-[Demo video](./demo.mp4)
+[![Watch the video](https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-preview/preview.png)](https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-preview/demo.mp4)
 
 ## Install
 

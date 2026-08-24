@@ -21,13 +21,15 @@
   "files": [
     "index.ts",
     "config.json",
-    "demo.mp4"
+    "demo.mp4",
+    "preview.png"
   ],
   "pi": {
     "extensions": [
       "./index.ts"
     ],
-    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/demo.mp4"
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/demo.mp4",
+    "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/preview.png"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

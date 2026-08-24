@@ -20,13 +20,15 @@
   ],
   "files": [
     "index.ts",
-    "demo.mp4"
+    "demo.mp4",
+    "preview.png"
   ],
   "pi": {
     "extensions": [
       "./index.ts"
     ],
-    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-no-sleep/demo.mp4"
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-no-sleep/demo.mp4",
+    "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-no-sleep/preview.png"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
