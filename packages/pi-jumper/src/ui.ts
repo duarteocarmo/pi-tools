@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { basename } from "node:path";
-import { DynamicBorder, type ExtensionCommandContext, type Theme } from "@earendil-works/pi-coding-agent";
+import { DynamicBorder, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
 import { Container, type SelectItem, SelectList, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { cleanTerminalText } from "./activity.ts";
 import type { DisplaySession, DisplayStatus } from "./registry.ts";
@@ -86,7 +86,7 @@ export async function showJumper({
   sessions,
   currentPid,
 }: {
-  ctx: ExtensionCommandContext;
+  ctx: ExtensionContext;
   sessions: DisplaySession[];
   currentPid: number;
 }): Promise<number | null> {

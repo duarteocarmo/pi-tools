@@ -172,6 +172,46 @@ export default function piJumper(pi: ExtensionAPI): void {
     ctx.ui.notify(`Pi Jumper widget ${widgetVisible ? "shown" : "hidden"}`, "info");
   }
 
+  async function openJumper({ ctx }: { ctx: ExtensionContext }): Promise<void> {
+    if (ctx.mode !== "tui") {
+      ctx.ui.notify("pi-jumper is available in interactive mode", "warning");
+      return;
+    }
+
+    while (true) {
+      refreshSessions();
+      if (sessions.length === 0) {
+        ctx.ui.notify("No live Pi sessions found", "info");
+        return;
+      }
+
+      const selectedPid = await showJumper({ ctx, sessions, currentPid: process.pid });
+      if (selectedPid === null) return;
+      const selected = sessions.find((session) => session.pid === selectedPid);
+      if (!selected) {
+        ctx.ui.notify("That Pi session is no longer running", "warning");
+        continue;
+      }
+      if (selected.pid === process.pid) {
+        ctx.ui.notify("You are already in this Pi session", "info");
+        continue;
+      }
+      if (!selected.tmux) {
+        ctx.ui.notify("This Pi session is not inside tmux, so it cannot be focused reliably", "warning");
+        continue;
+      }
+
+      const result = jumpToTmux({ target: selected.tmux, current: currentTmuxTarget() });
+      if (result.ok) return;
+      ctx.ui.notify(`Could not jump: ${result.error}`, "error");
+    }
+  }
+
+  pi.registerShortcut("alt+j", {
+    description: "Open Pi Jumper",
+    handler: async (ctx) => openJumper({ ctx }),
+  });
+
   pi.registerCommand("jumper", {
     description: "See live Pi sessions or toggle the sticky widget",
     handler: async (args, ctx) => {
@@ -190,33 +230,7 @@ export default function piJumper(pi: ExtensionAPI): void {
         return;
       }
 
-      while (true) {
-        refreshSessions();
-        if (sessions.length === 0) {
-          ctx.ui.notify("No live Pi sessions found", "info");
-          return;
-        }
-
-        const selectedPid = await showJumper({ ctx, sessions, currentPid: process.pid });
-        if (selectedPid === null) return;
-        const selected = sessions.find((session) => session.pid === selectedPid);
-        if (!selected) {
-          ctx.ui.notify("That Pi session is no longer running", "warning");
-          continue;
-        }
-        if (selected.pid === process.pid) {
-          ctx.ui.notify("You are already in this Pi session", "info");
-          continue;
-        }
-        if (!selected.tmux) {
-          ctx.ui.notify("This Pi session is not inside tmux, so it cannot be focused reliably", "warning");
-          continue;
-        }
-
-        const result = jumpToTmux({ target: selected.tmux, current: currentTmuxTarget() });
-        if (result.ok) return;
-        ctx.ui.notify(`Could not jump: ${result.error}`, "error");
-      }
+      await openJumper({ ctx });
     },
   });
 }
