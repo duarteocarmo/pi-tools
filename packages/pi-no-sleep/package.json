@@ -25,7 +25,8 @@
   "pi": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-no-sleep/demo.mp4"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

@@ -20,12 +20,14 @@
   ],
   "files": [
     "index.ts",
-    "config.json"
+    "config.json",
+    "demo.mp4"
   ],
   "pi": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/demo.mp4"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

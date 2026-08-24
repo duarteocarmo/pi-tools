@@ -5,6 +5,8 @@
 
 Pi Jumper shows every live Pi session on the machine and marks each one as running, idle, stale, or failed. Press `Alt+J` or use `/jumper` to inspect sessions and jump to sessions that run inside tmux.
 
+[Demo video](./demo.mp4)
+
 ## Install
 
 Install only Pi Jumper from npm:

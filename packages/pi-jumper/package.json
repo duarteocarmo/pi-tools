@@ -23,7 +23,8 @@
     "src/activity.ts",
     "src/registry.ts",
     "src/tmux.ts",
-    "src/ui.ts"
+    "src/ui.ts",
+    "demo.mp4"
   ],
   "scripts": {
     "test": "node --experimental-strip-types --test src/*.test.ts",
@@ -35,7 +36,8 @@
   "pi": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-jumper/demo.mp4"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

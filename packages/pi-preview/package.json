@@ -18,12 +18,16 @@
     "pi-extension"
   ],
   "files": [
-    "index.ts"
+    "index.ts",
+    "demo.mp4",
+    "preview.png"
   ],
   "pi": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-preview/demo.mp4",
+    "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-preview/preview.png"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
