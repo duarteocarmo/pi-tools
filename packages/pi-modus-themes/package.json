@@ -21,7 +21,9 @@
   ],
   "files": [
     "index.ts",
-    "themes"
+    "themes",
+    "modus-operandi.png",
+    "modus-vivendi.png"
   ],
   "pi": {
     "extensions": [
@@ -29,7 +31,8 @@
     ],
     "themes": [
       "./themes"
-    ]
+    ],
+    "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-modus-themes/modus-vivendi.png"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

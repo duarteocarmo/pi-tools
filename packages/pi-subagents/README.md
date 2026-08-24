@@ -7,7 +7,7 @@ Pi Subagents runs bounded tasks in separate Pi sessions. It adds the `subagent` 
 
 The extension is based on Armin Ronacher's [`subagent.ts`](https://github.com/mitsuhiko/agent-stuff/blob/main/extensions/subagent.ts) from [`mitsuhiko/agent-stuff`](https://github.com/mitsuhiko/agent-stuff).
 
-[![Watch the video](https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/preview.png)](https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/demo.mp4)
+[<video src="https://github.com/duarteocarmo/pi-tools/raw/master/packages/pi-subagents/demo.mp4" controls width="100%"></video>](https://github.com/user-attachments/assets/0870262c-4249-44fa-bdca-1bf907838fe4)
 
 ## Install
 
