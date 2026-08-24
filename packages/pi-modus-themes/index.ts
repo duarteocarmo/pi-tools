@@ -1,6 +1,6 @@
 /**
  * Syncs pi theme with macOS system appearance (dark/light mode).
- * Checks on session start and polls every 2 seconds.
+ * Checks on session start and polls every second.
  */
 
 import { exec } from "node:child_process";
@@ -11,7 +11,7 @@ const execAsync = promisify(exec);
 
 const DARK_THEME = "modus-vivendi";
 const LIGHT_THEME = "modus-operandi";
-const POLL_INTERVAL_MS = 500;
+const POLL_INTERVAL_MS = 1000;
 
 async function isDarkMode(): Promise<boolean> {
   try {
