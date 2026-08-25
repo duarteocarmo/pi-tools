@@ -1,12 +1,12 @@
 import { homedir } from "node:os";
 import { basename } from "node:path";
-import { DynamicBorder, type ExtensionContext, type Theme } from "@earendil-works/pi-coding-agent";
-import { Container, type SelectItem, SelectList, Text, truncateToWidth } from "@earendil-works/pi-tui";
+import type { ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
+import { Container, type SelectItem, SelectList, Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { cleanTerminalText } from "./activity.ts";
 import type { DisplaySession, DisplayStatus } from "./registry.ts";
 
 const STATUS_GLYPH: Record<DisplayStatus, string> = {
-  running: "●",
+  running: "▶",
   idle: "●",
   stale: "○",
   failed: "×",
@@ -44,19 +44,11 @@ function descriptionFor({ session }: { session: DisplaySession }): string {
   return `Pi: ${command} · ${compactPath({ path: session.cwd })} · ${tmuxLocation({ session })}`;
 }
 
-function sortedSessions({
-  sessions,
-  currentPid,
-}: {
-  sessions: DisplaySession[];
-  currentPid: number;
-}): DisplaySession[] {
-  const rank: Record<DisplayStatus, number> = { running: 0, failed: 1, idle: 2, stale: 3 };
-  return [...sessions].sort((left, right) => {
-    if (left.pid === currentPid) return -1;
-    if (right.pid === currentPid) return 1;
-    return rank[left.displayStatus] - rank[right.displayStatus] || right.updatedAt - left.updatedAt;
-  });
+function sortedSessions({ sessions }: { sessions: DisplaySession[] }): DisplaySession[] {
+  const rank: Record<DisplayStatus, number> = { running: 0, idle: 1, failed: 2, stale: 3 };
+  return [...sessions].sort(
+    (left, right) => rank[left.displayStatus] - rank[right.displayStatus] || right.updatedAt - left.updatedAt,
+  );
 }
 
 export function renderSessionWidget({
@@ -73,8 +65,8 @@ export function renderSessionWidget({
   const parts = [
     theme.fg("accent", "π"),
     theme.fg("text", `${total} ${total === 1 ? "session" : "sessions"}`),
-    theme.fg("accent", `● ${counts.running} running`),
-    theme.fg("success", `● ${counts.idle} idle`),
+    theme.fg("accent", `${STATUS_GLYPH.running} ${counts.running} running`),
+    theme.fg("success", `${STATUS_GLYPH.idle} ${counts.idle} idle`),
   ];
   if (counts.stale) parts.push(theme.fg("dim", `○ ${counts.stale} stale`));
   if (counts.failed) parts.push(theme.fg("error", `× ${counts.failed} failed`));
@@ -92,7 +84,7 @@ export async function showJumper({
 }): Promise<number | null> {
   return ctx.ui.custom<number | null>(
     (tui, theme, keybindings, done) => {
-      const ordered = sortedSessions({ sessions, currentPid });
+      const ordered = sortedSessions({ sessions });
       const items: SelectItem[] = ordered.map((session) => {
         const status = session.displayStatus;
         const current = session.pid === currentPid ? theme.fg("muted", " ←") : "";
@@ -106,7 +98,6 @@ export async function showJumper({
 
       const counts = countStatuses({ sessions });
       const container = new Container();
-      container.addChild(new DynamicBorder((text: string) => theme.fg("borderAccent", text)));
       container.addChild(
         new Text(
           theme.fg("accent", theme.bold("Pi Jumper")) +
@@ -132,10 +123,20 @@ export async function showJumper({
       list.onCancel = () => done(null);
       container.addChild(list);
       container.addChild(new Text(theme.fg("dim", "k/↑ previous · j/↓ next · enter jump · esc close"), 1, 0));
-      container.addChild(new DynamicBorder((text: string) => theme.fg("borderAccent", text)));
 
       return {
-        render: (width: number) => container.render(width),
+        render: (width: number) => {
+          if (width < 2) return container.render(width);
+          const innerWidth = width - 2;
+          const border = (text: string) => theme.fg("borderAccent", text);
+          const lines = container
+            .render(innerWidth)
+            .map(
+              (line) =>
+                `${border("│")}${line}${" ".repeat(Math.max(0, innerWidth - visibleWidth(line)))}${border("│")}`,
+            );
+          return [border(`┌${"─".repeat(innerWidth)}┐`), ...lines, border(`└${"─".repeat(innerWidth)}┘`)];
+        },
         invalidate: () => container.invalidate(),
         handleInput: (data: string) => {
           if (data === "k" || keybindings.matches(data, "tui.select.up")) {
