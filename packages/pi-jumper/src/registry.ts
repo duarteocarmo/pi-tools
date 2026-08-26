@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -19,6 +20,7 @@ export interface SessionRecord {
   name?: string;
   cwd: string;
   pid: number;
+  processStartedAt?: string;
   startedAt: number;
   updatedAt: number;
   status: SessionStatus;
@@ -59,6 +61,7 @@ function isSessionRecord(value: unknown): value is SessionRecord {
     typeof record.sessionId === "string" &&
     typeof record.cwd === "string" &&
     typeof record.pid === "number" &&
+    (record.processStartedAt === undefined || typeof record.processStartedAt === "string") &&
     typeof record.startedAt === "number" &&
     typeof record.updatedAt === "number" &&
     (record.status === "running" || record.status === "idle" || record.status === "failed") &&
@@ -66,6 +69,20 @@ function isSessionRecord(value: unknown): value is SessionRecord {
     (record.lastCommand === undefined || typeof record.lastCommand === "string") &&
     (record.tmux === undefined || isTmuxTarget(record.tmux))
   );
+}
+
+export function processStartedAt({ pid }: { pid: number }): string | undefined {
+  try {
+    return (
+      execFileSync("ps", ["-o", "lstart=", "-p", String(pid)], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 1_000,
+      }).trim() || undefined
+    );
+  } catch {
+    return undefined;
+  }
 }
 
 function processIsAlive({ pid }: { pid: number }): boolean {

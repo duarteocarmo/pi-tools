@@ -34,21 +34,37 @@ function compactPath({ path }: { path: string }): string {
   return path.startsWith(`${homeDirectory}/`) ? `~/${path.slice(homeDirectory.length + 1)}` : path;
 }
 
-function tmuxLocation({ session }: { session: DisplaySession }): string {
-  if (!session.tmux) return "direct · no jump";
-  return `${session.tmux.session}:${session.tmux.window} ${session.tmux.pane}`;
+function tmuxSessionFor({ session, theme }: { session: DisplaySession; theme: Theme }): string {
+  if (!session.tmux) return theme.fg("dim", "direct");
+  const name = cleanTerminalText({ text: session.tmux.session });
+  return theme.fg("muted", name);
 }
 
-function descriptionFor({ session }: { session: DisplaySession }): string {
-  const command = cleanTerminalText({ text: session.lastCommand || "—" });
-  return `Pi: ${command} · ${compactPath({ path: session.cwd })} · ${tmuxLocation({ session })}`;
+function descriptionFor({ session, theme }: { session: DisplaySession; theme: Theme }): string {
+  const separator = theme.fg("dim", " · ");
+  const location = session.tmux ? theme.fg("accent", `window ${session.tmux.window}`) : theme.fg("dim", "no tmux");
+  const prompt = cleanTerminalText({ text: session.lastUserPrompt || "—" });
+  return [
+    theme.fg("muted", compactPath({ path: session.cwd })),
+    location,
+    theme.fg("text", theme.italic(`“${prompt}”`)),
+  ].join(separator);
 }
 
-function sortedSessions({ sessions }: { sessions: DisplaySession[] }): DisplaySession[] {
+function sortedSessions({
+  sessions,
+  currentPid,
+}: {
+  sessions: DisplaySession[];
+  currentPid: number;
+}): DisplaySession[] {
   const rank: Record<DisplayStatus, number> = { running: 0, idle: 1, failed: 2, stale: 3 };
-  return [...sessions].sort(
-    (left, right) => rank[left.displayStatus] - rank[right.displayStatus] || right.updatedAt - left.updatedAt,
-  );
+  return [...sessions].sort((left, right) => {
+    if (left.pid === currentPid && right.pid === currentPid) return 0;
+    if (left.pid === currentPid) return 1;
+    if (right.pid === currentPid) return -1;
+    return rank[left.displayStatus] - rank[right.displayStatus] || right.updatedAt - left.updatedAt;
+  });
 }
 
 export function renderSessionWidget({
@@ -73,6 +89,11 @@ export function renderSessionWidget({
   return [truncateToWidth(parts.join(theme.fg("dim", " · ")), width, "…")];
 }
 
+export interface JumperAction {
+  action: "jump" | "kill";
+  pid: number;
+}
+
 export async function showJumper({
   ctx,
   sessions,
@@ -81,18 +102,17 @@ export async function showJumper({
   ctx: ExtensionContext;
   sessions: DisplaySession[];
   currentPid: number;
-}): Promise<number | null> {
-  return ctx.ui.custom<number | null>(
+}): Promise<JumperAction | null> {
+  return ctx.ui.custom<JumperAction | null>(
     (tui, theme, keybindings, done) => {
-      const ordered = sortedSessions({ sessions });
+      const ordered = sortedSessions({ sessions, currentPid });
       const items: SelectItem[] = ordered.map((session) => {
         const status = session.displayStatus;
-        const current = session.pid === currentPid ? theme.fg("muted", " ←") : "";
-        const prompt = cleanTerminalText({ text: session.lastUserPrompt || "—" });
+        const current = session.pid === currentPid ? theme.fg("warning", " ← current") : "";
         return {
           value: String(session.pid),
-          label: `${theme.fg(STATUS_COLOR[status], STATUS_GLYPH[status])} ${sessionName({ session })}${current} ${theme.fg("muted", `“${prompt}”`)}`,
-          description: descriptionFor({ session }),
+          label: `${theme.fg(STATUS_COLOR[status], STATUS_GLYPH[status])} ${theme.bold(sessionName({ session }))}${current}${theme.fg("dim", " · ")}${tmuxSessionFor({ session, theme })}`,
+          description: descriptionFor({ session, theme }),
         };
       });
 
@@ -116,13 +136,13 @@ export async function showJumper({
           scrollInfo: (text) => theme.fg("dim", text),
           noMatch: (text) => theme.fg("warning", text),
         },
-        { maxPrimaryColumnWidth: 50 },
+        { minPrimaryColumnWidth: 24, maxPrimaryColumnWidth: 42 },
       );
       let selectedIndex = 0;
-      list.onSelect = (item) => done(Number(item.value));
+      list.onSelect = (item) => done({ action: "jump", pid: Number(item.value) });
       list.onCancel = () => done(null);
       container.addChild(list);
-      container.addChild(new Text(theme.fg("dim", "k/↑ previous · j/↓ next · enter jump · esc close"), 1, 0));
+      container.addChild(new Text(theme.fg("dim", "k/↑ j/↓ navigate · enter jump · x kill Pi · esc close"), 1, 0));
 
       return {
         render: (width: number) => {
@@ -145,6 +165,9 @@ export async function showJumper({
           } else if (data === "j" || keybindings.matches(data, "tui.select.down")) {
             selectedIndex = selectedIndex === items.length - 1 ? 0 : selectedIndex + 1;
             list.setSelectedIndex(selectedIndex);
+          } else if (data === "x") {
+            const selected = list.getSelectedItem();
+            if (selected) done({ action: "kill", pid: Number(selected.value) });
           } else {
             list.handleInput(data);
           }

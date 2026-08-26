@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { readSessions, removeSession, type SessionRecord, writeSession } from "./registry.ts";
+import { processStartedAt, readSessions, removeSession, type SessionRecord, writeSession } from "./registry.ts";
 
 function liveRecord({ updatedAt = Date.now() }: { updatedAt?: number } = {}): SessionRecord {
   return {
@@ -16,6 +16,11 @@ function liveRecord({ updatedAt = Date.now() }: { updatedAt?: number } = {}): Se
     status: "idle",
   };
 }
+
+test("reads the current process start time", () => {
+  assert.equal(typeof processStartedAt({ pid: process.pid }), "string");
+  assert.equal(processStartedAt({ pid: 99_999_999 }), undefined);
+});
 
 test("writes and reads a live session", () => {
   const directory = mkdtempSync(join(tmpdir(), "pi-jumper-"));

@@ -7,7 +7,14 @@ import {
   summarizeUserCommand,
   summarizeUserPrompt,
 } from "./src/activity.ts";
-import { readSessions, removeSession, type DisplaySession, type SessionRecord, writeSession } from "./src/registry.ts";
+import {
+  processStartedAt,
+  readSessions,
+  removeSession,
+  type DisplaySession,
+  type SessionRecord,
+  writeSession,
+} from "./src/registry.ts";
 import { currentTmuxTarget, jumpToTmux } from "./src/tmux.ts";
 import { renderSessionWidget, showJumper } from "./src/ui.ts";
 
@@ -96,6 +103,7 @@ export default function piJumper(pi: ExtensionAPI): void {
       name: pi.getSessionName(),
       cwd: ctx.cwd,
       pid: process.pid,
+      processStartedAt: processStartedAt({ pid: process.pid }),
       startedAt: now,
       updatedAt: now,
       status: "idle",
@@ -185,13 +193,54 @@ export default function piJumper(pi: ExtensionAPI): void {
         return;
       }
 
-      const selectedPid = await showJumper({ ctx, sessions, currentPid: process.pid });
-      if (selectedPid === null) return;
-      const selected = sessions.find((session) => session.pid === selectedPid);
+      const action = await showJumper({ ctx, sessions, currentPid: process.pid });
+      if (action === null) return;
+      const selected = sessions.find((session) => session.pid === action.pid);
       if (!selected) {
         ctx.ui.notify("That Pi session is no longer running", "warning");
         continue;
       }
+
+      if (action.action === "kill") {
+        const name = selected.name || selected.tmux?.session || `Pi ${selected.pid}`;
+        if (!selected.processStartedAt) {
+          ctx.ui.notify(`Cannot verify ${name}. Reload that Pi session and try again.`, "warning");
+          continue;
+        }
+        if (processStartedAt({ pid: selected.pid }) !== selected.processStartedAt) {
+          removeSession({ pid: selected.pid });
+          ctx.ui.notify("That Pi session is no longer running", "warning");
+          continue;
+        }
+
+        const confirmed = await ctx.ui.confirm(
+          "Kill Pi session?",
+          `Stop ${name} (PID ${selected.pid})? Its tmux session will remain open.`,
+        );
+        if (!confirmed) continue;
+
+        try {
+          if (processStartedAt({ pid: selected.pid }) !== selected.processStartedAt) {
+            removeSession({ pid: selected.pid });
+            ctx.ui.notify("That Pi session is no longer running", "warning");
+            continue;
+          }
+          process.kill(selected.pid, "SIGTERM");
+          removeSession({ pid: selected.pid });
+          ctx.ui.notify(`Stop signal sent to ${name}`, "info");
+        } catch (error) {
+          const failure = error as NodeJS.ErrnoException;
+          if (failure.code === "ESRCH") {
+            removeSession({ pid: selected.pid });
+            ctx.ui.notify("That Pi session is no longer running", "warning");
+          } else {
+            ctx.ui.notify(`Could not kill Pi session: ${failure.message}`, "error");
+          }
+        }
+        if (selected.pid === process.pid) return;
+        continue;
+      }
+
       if (selected.pid === process.pid) {
         ctx.ui.notify("You are already in this Pi session", "info");
         continue;
