@@ -1,5 +1,7 @@
 # Duarte's pi tools
 
+![Duarte's pi tools](./assets/pi-tools-hero.png)
+
 Extensions, themes and apps I use with [pi](https://pi.dev/)
 
 | Name | What it does | Install with |

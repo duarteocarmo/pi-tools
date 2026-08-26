@@ -22,3 +22,5 @@ Install every Pi package in this repository from Git:
 ```sh
 pi install git:github.com/duarteocarmo/pi-tools
 ```
+
+Part of [pi-tools](https://github.com/duarteocarmo/pi-tools).

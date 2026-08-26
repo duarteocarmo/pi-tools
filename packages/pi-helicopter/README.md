@@ -50,3 +50,5 @@ The build uses an ad hoc signature. macOS may ask you to confirm that you want t
 ## Release
 
 The [release workflow](../../.github/workflows/release-pi-helicopter.yml) creates a patch release when app code reaches `master`. It also updates the [Homebrew cask](../../Casks/pi-helicopter.rb).
+
+Part of [pi-tools](https://github.com/duarteocarmo/pi-tools).
