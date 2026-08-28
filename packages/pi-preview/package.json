@@ -26,6 +26,7 @@
     "extensions": [
       "./index.ts"
     ],
+    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-preview/demo.mp4",
     "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-preview/preview.png"
   },
   "peerDependencies": {
