@@ -24,6 +24,10 @@ function firstString({ args, keys }: { args: Record<string, unknown>; keys: stri
   return undefined;
 }
 
+export function toolWaitsForUser({ toolName }: { toolName: string }): boolean {
+  return toolName === "ask_user" || toolName === "ask_question" || toolName === "ask_user_question";
+}
+
 export function summarizeToolCall({ toolName, args }: { toolName: string; args: unknown }): string {
   const toolArgs = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
   const detail = firstString({

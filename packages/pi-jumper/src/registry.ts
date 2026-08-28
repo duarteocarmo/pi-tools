@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 export type SessionStatus = "running" | "idle" | "failed";
-export type DisplayStatus = SessionStatus | "stale";
+export type DisplayStatus = SessionStatus | "waiting" | "stale";
 
 export interface TmuxTarget {
   socket: string;
@@ -24,6 +24,7 @@ export interface SessionRecord {
   startedAt: number;
   updatedAt: number;
   status: SessionStatus;
+  waitingForInput?: boolean;
   lastUserPrompt?: string;
   lastCommand?: string;
   terminal?: string;
@@ -65,6 +66,7 @@ function isSessionRecord(value: unknown): value is SessionRecord {
     typeof record.startedAt === "number" &&
     typeof record.updatedAt === "number" &&
     (record.status === "running" || record.status === "idle" || record.status === "failed") &&
+    (record.waitingForInput === undefined || typeof record.waitingForInput === "boolean") &&
     (record.lastUserPrompt === undefined || typeof record.lastUserPrompt === "string") &&
     (record.lastCommand === undefined || typeof record.lastCommand === "string") &&
     (record.tmux === undefined || isTmuxTarget(record.tmux))
@@ -146,7 +148,7 @@ export function readSessions({
       }
       sessions.push({
         ...record,
-        displayStatus: age > staleAfterMs ? "stale" : record.status,
+        displayStatus: age > staleAfterMs ? "stale" : record.waitingForInput ? "waiting" : record.status,
       });
     } catch (error) {
       if (error instanceof SyntaxError) unlinkSync(sessionPath);

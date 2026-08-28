@@ -6,12 +6,13 @@ import {
   summarizeToolCall,
   summarizeUserCommand,
   summarizeUserPrompt,
+  toolWaitsForUser,
 } from "./src/activity.ts";
 import {
+  type DisplaySession,
   processStartedAt,
   readSessions,
   removeSession,
-  type DisplaySession,
   type SessionRecord,
   writeSession,
 } from "./src/registry.ts";
@@ -30,6 +31,7 @@ export default function piJumper(pi: ExtensionAPI): void {
   let widgetRegistered = false;
   let widgetVisible = true;
   let agentFailed = false;
+  const waitingToolCallIds = new Set<string>();
 
   function refreshSessions(): void {
     try {
@@ -42,7 +44,10 @@ export default function piJumper(pi: ExtensionAPI): void {
 
   function updateCurrentSession(): void {
     if (!current) return;
-    const currentSession: DisplaySession = { ...current, displayStatus: current.status };
+    const currentSession: DisplaySession = {
+      ...current,
+      displayStatus: current.waitingForInput ? "waiting" : current.status,
+    };
     const index = sessions.findIndex((session) => session.pid === currentSession.pid);
     if (index === -1) sessions.push(currentSession);
     else sessions[index] = currentSession;
@@ -94,6 +99,7 @@ export default function piJumper(pi: ExtensionAPI): void {
 
   pi.on("session_start", (_event, ctx) => {
     clearInterval(heartbeat);
+    waitingToolCallIds.clear();
     const now = Date.now();
     const activity = activityFromSessionEntries({ entries: ctx.sessionManager.getBranch() });
     current = {
@@ -134,13 +140,25 @@ export default function piJumper(pi: ExtensionAPI): void {
   pi.on("agent_start", () => {
     if (!current) return;
     agentFailed = false;
+    waitingToolCallIds.clear();
     current.status = "running";
+    current.waitingForInput = false;
     persist();
   });
 
   pi.on("tool_execution_start", (event) => {
     if (!current) return;
     current.lastCommand = summarizeToolCall({ toolName: event.toolName, args: event.args });
+    if (toolWaitsForUser({ toolName: event.toolName })) {
+      waitingToolCallIds.add(event.toolCallId);
+      current.waitingForInput = true;
+    }
+    persist();
+  });
+
+  pi.on("tool_execution_end", (event) => {
+    if (!current || !waitingToolCallIds.delete(event.toolCallId)) return;
+    current.waitingForInput = waitingToolCallIds.size > 0;
     persist();
   });
 
@@ -156,7 +174,9 @@ export default function piJumper(pi: ExtensionAPI): void {
 
   pi.on("agent_settled", () => {
     if (!current) return;
+    waitingToolCallIds.clear();
     current.status = agentFailed ? "failed" : "idle";
+    current.waitingForInput = false;
     persist();
   });
 
@@ -165,6 +185,7 @@ export default function piJumper(pi: ExtensionAPI): void {
     heartbeat = undefined;
     removeSession({ pid: process.pid });
     removeWidget({ ctx });
+    waitingToolCallIds.clear();
     current = undefined;
   });
 

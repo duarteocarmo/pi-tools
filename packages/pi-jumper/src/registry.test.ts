@@ -35,6 +35,17 @@ test("writes and reads a live session", () => {
   }
 });
 
+test("shows a live session waiting for user input", () => {
+  const directory = mkdtempSync(join(tmpdir(), "pi-jumper-"));
+  try {
+    writeSession({ record: { ...liveRecord({}), status: "running", waitingForInput: true }, directory });
+    const sessions = readSessions({ directory });
+    assert.equal(sessions[0]?.displayStatus, "waiting");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("derives stale status from the heartbeat", () => {
   const directory = mkdtempSync(join(tmpdir(), "pi-jumper-"));
   try {

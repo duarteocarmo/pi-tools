@@ -7,7 +7,14 @@ import {
   summarizeToolCall,
   summarizeUserCommand,
   summarizeUserPrompt,
+  toolWaitsForUser,
 } from "./activity.ts";
+
+test("identifies tools that wait for user input", () => {
+  assert.equal(toolWaitsForUser({ toolName: "ask_user_question" }), true);
+  assert.equal(toolWaitsForUser({ toolName: "ask_user" }), true);
+  assert.equal(toolWaitsForUser({ toolName: "read" }), false);
+});
 
 test("summarizes bash commands on one line", () => {
   assert.equal(

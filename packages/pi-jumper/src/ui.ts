@@ -7,20 +7,22 @@ import type { DisplaySession, DisplayStatus } from "./registry.ts";
 
 const STATUS_GLYPH: Record<DisplayStatus, string> = {
   running: "▶",
+  waiting: "?",
   idle: "●",
   stale: "○",
   failed: "×",
 };
 
-const STATUS_COLOR: Record<DisplayStatus, "accent" | "success" | "dim" | "error"> = {
+const STATUS_COLOR: Record<DisplayStatus, "accent" | "warning" | "success" | "dim" | "error"> = {
   running: "accent",
+  waiting: "warning",
   idle: "success",
   stale: "dim",
   failed: "error",
 };
 
 function countStatuses({ sessions }: { sessions: DisplaySession[] }): Record<DisplayStatus, number> {
-  const counts: Record<DisplayStatus, number> = { running: 0, idle: 0, stale: 0, failed: 0 };
+  const counts: Record<DisplayStatus, number> = { running: 0, waiting: 0, idle: 0, stale: 0, failed: 0 };
   for (const session of sessions) counts[session.displayStatus]++;
   return counts;
 }
@@ -58,7 +60,7 @@ function sortedSessions({
   sessions: DisplaySession[];
   currentPid: number;
 }): DisplaySession[] {
-  const rank: Record<DisplayStatus, number> = { running: 0, idle: 1, failed: 2, stale: 3 };
+  const rank: Record<DisplayStatus, number> = { waiting: 0, running: 1, idle: 2, failed: 3, stale: 4 };
   return [...sessions].sort((left, right) => {
     if (left.pid === currentPid && right.pid === currentPid) return 0;
     if (left.pid === currentPid) return 1;
@@ -78,14 +80,12 @@ export function renderSessionWidget({
 }): string[] {
   const counts = countStatuses({ sessions });
   const total = sessions.length;
-  const parts = [
-    theme.fg("accent", "π"),
-    theme.fg("text", `${total} ${total === 1 ? "session" : "sessions"}`),
-    theme.fg("accent", `${STATUS_GLYPH.running} ${counts.running} running`),
-    theme.fg("success", `${STATUS_GLYPH.idle} ${counts.idle} idle`),
-  ];
-  if (counts.stale) parts.push(theme.fg("dim", `○ ${counts.stale} stale`));
-  if (counts.failed) parts.push(theme.fg("error", `× ${counts.failed} failed`));
+  const parts = [theme.fg("accent", "π"), theme.fg("text", `${total} ${total === 1 ? "session" : "sessions"}`)];
+  if (counts.waiting > 0) parts.push(theme.fg("warning", `${STATUS_GLYPH.waiting} ${counts.waiting} waiting`));
+  if (counts.running > 0) parts.push(theme.fg("accent", `${STATUS_GLYPH.running} ${counts.running} running`));
+  if (counts.idle > 0) parts.push(theme.fg("success", `${STATUS_GLYPH.idle} ${counts.idle} idle`));
+  if (counts.stale > 0) parts.push(theme.fg("dim", `○ ${counts.stale} stale`));
+  if (counts.failed > 0) parts.push(theme.fg("error", `× ${counts.failed} failed`));
   return [truncateToWidth(parts.join(theme.fg("dim", " · ")), width, "…")];
 }
 
@@ -117,14 +117,14 @@ export async function showJumper({
       });
 
       const counts = countStatuses({ sessions });
+      const summary = [`${sessions.length} sessions`];
+      if (counts.waiting > 0) summary.push(`${counts.waiting} waiting`);
+      if (counts.running > 0) summary.push(`${counts.running} running`);
+      if (counts.idle > 0) summary.push(`${counts.idle} idle`);
+
       const container = new Container();
       container.addChild(
-        new Text(
-          theme.fg("accent", theme.bold("Pi Jumper")) +
-            theme.fg("muted", `  ${sessions.length} sessions · ${counts.running} running · ${counts.idle} idle`),
-          1,
-          0,
-        ),
+        new Text(theme.fg("accent", theme.bold("Pi Jumper")) + theme.fg("muted", `  ${summary.join(" · ")}`), 1, 0),
       );
       const list = new SelectList(
         items,
