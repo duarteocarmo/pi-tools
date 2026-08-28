@@ -27,7 +27,7 @@
     "extensions": [
       "./index.ts"
     ],
-    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-no-sleep/demo.mp4",
+    "video": "https://github.com/user-attachments/assets/4ade30ad-868f-4c5f-aa47-5310650d3b00",
     "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-no-sleep/preview.png"
   },
   "peerDependencies": {

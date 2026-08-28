@@ -28,7 +28,7 @@
     "extensions": [
       "./index.ts"
     ],
-    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/demo.mp4",
+    "video": "https://github.com/user-attachments/assets/776a310a-65cb-4721-8a0b-2235f330bd36",
     "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-subagents/preview.png"
   },
   "peerDependencies": {

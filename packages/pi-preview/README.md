@@ -9,7 +9,7 @@ Pi Preview opens the latest assistant response as an HTML page in your browser. 
 
 ## Demo
 
-[<video src="https://github.com/duarteocarmo/pi-tools/raw/master/packages/pi-preview/demo.mp4" controls width="100%"></video>](https://github.com/user-attachments/assets/a5c62fa4-aca1-4c82-8118-fe87403f15a5)
+[<video src="https://github.com/duarteocarmo/pi-tools/raw/master/packages/pi-preview/demo.mp4" controls width="100%"></video>](https://github.com/user-attachments/assets/e20266b6-7ab8-4812-9846-26be5f2d53a4)
 
 ## Install
 

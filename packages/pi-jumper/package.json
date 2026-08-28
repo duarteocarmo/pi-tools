@@ -38,7 +38,7 @@
     "extensions": [
       "./index.ts"
     ],
-    "video": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-jumper/demo.mp4",
+    "video": "https://github.com/user-attachments/assets/1d020254-a17b-41c6-9084-1766ed10c12c",
     "image": "https://raw.githubusercontent.com/duarteocarmo/pi-tools/master/packages/pi-jumper/preview.png"
   },
   "peerDependencies": {
