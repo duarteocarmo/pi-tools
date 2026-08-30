@@ -1,14 +1,12 @@
 # Pi Helicopter
 
-<p align="center">
-  <img src="docs/screenshots/icon.png" width="96" alt="Pi Helicopter app icon">
-</p>
-
 Pi Helicopter shows local [Pi](https://pi.dev) usage in the macOS menu bar. It reads session data from `~/.pi/agent/sessions`.
 
-<p align="center">
-  <img src="docs/screenshots/menu.png" width="300" alt="Pi Helicopter menu">
-</p>
+<br>
+
+![Pi Helicopter menu over a blue wallpaper](docs/screenshots/hero.webp)
+
+<br>
 
 ## Features
 
