@@ -8,6 +8,8 @@ Pi Helicopter shows local [Pi](https://pi.dev) usage in the macOS menu bar. It r
 
 <br>
 
+> The original idea came from [Ali (@phun333)](https://github.com/phun333) and his [pi-infobar](https://github.com/phun333/pi-infobar). I wanted something Mac-only that did not kill my RAM.
+
 ## Features
 
 - View costs, tokens, models, projects, languages, and tools.
